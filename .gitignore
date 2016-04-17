@@ -1,5 +1,8 @@
 .DS_Store
 
+# Distribution
+dist
+
 # Logs
 logs
 *.log
