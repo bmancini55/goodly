@@ -51,6 +51,41 @@ This is an example of a service with multiple instances emitting an event that t
 
 ## Getting Started
 
+Initialize the service by configuring the caching, transport and starting the broker.
+```javascript
+import goodly from 'goodly';
+
+// initialize the service
+const ms = goodly({ name: 'documents' });
+
+// initialize the caching mechanism
+await ms.set('cache', goodly.redisCache({ redisUrl: process.env.REDIS }));
+
+// initialize the transportation mechanism
+await ms.set('transport', goodly.httpTransport({ httpHost: process.env.HTTPHOST }));
+
+// start the service
+await ms.start({ brokerPath: process.env.RABBIT });
+```
+
+Now you can bind an event handler
+```javascript
+// binding a listener for an event
+await ms.on('document.uploaded', documentUploaded);
+```
+
+The handler method accepts a context and a bound emit event that will keep the correlation ID.  This allows the handler to execute without scoping (this) issues.  Additionally, handlers are executed as a middleware pipeline matching the event.  This allows event interception to occur.
+```javascript
+async function previewsUploaded(data, { ms, emit }) {
+
+  // do something with the record
+  let result  = doSomethingWithRecord(data);
+
+  // emit preview record
+  emit('document.available', result);
+}
+```
+
 ## API
 
 
