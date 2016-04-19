@@ -76,7 +76,7 @@ await ms.on('document.uploaded', documentUploaded);
 
 The handler method accepts a context and a bound emit event that will keep the correlation ID.  This allows the handler to execute without scoping (this) issues.  Additionally, handlers are executed as a middleware pipeline matching the event.  This allows event interception to occur.
 ```javascript
-async function previewsUploaded(data, { ms, emit }) {
+async function documentUploaded(data, { ms, emit }) {
 
   // do something with the record
   let result  = doSomethingWithRecord(data);
