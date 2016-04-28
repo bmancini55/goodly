@@ -3,13 +3,14 @@
 Goodly is an unopininated microservice communication framework. It manages the low-level infrastructure so you can focus on the important stuff: handling events.
 
 Goodly:
+
 1. Has a simple programming interface for event-based microservices
 1. Supports scale-out of individual services
 1. Supports addition of new service types
 1. Supports large-message transmission between services
 1. Supports automatic routing of messaging through a central communication bus
 
-Conceptually, it fills a similiar niche as Express does for web application development, except in the event-based microservice world. Goodly doesn't tell you the best way to structure you app, it gives you a set of tools to make interaction between services easy and lets you build on-top.
+Conceptually, it fills a similiar role that Express does for web application development, except in the event-based microservice world. Goodly doesn't tell you the best way to structure you app, it gives you a set of tools and lets you build on-top.
 
 Goodly manages the AMQP exchange creation, queue creation, and messaging routing creation. It does all this to provide a simple interface for building your application but with the added benefit of allowing scale-out of your services.
 
