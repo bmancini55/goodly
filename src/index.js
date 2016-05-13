@@ -1,5 +1,5 @@
+import 'babel-regenerator-runtime';
 import 'source-map-support/register';
-import 'regenerator-runtime/runtime';
 import Application from './application';
 import memoryCache from './memory-cache';
 import redisCache from './redis-cache';
