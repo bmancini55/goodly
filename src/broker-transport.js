@@ -6,7 +6,7 @@ const debug = Debug('goodly:broker-transport');
 
 export default async (options) => {
   return new BrokerTransport(options);
-}
+};
 
 
 export class BrokerTransport {
@@ -32,7 +32,7 @@ export class BrokerTransport {
   /**
    * Fetches the data directly from the message
    */
-  async requestData({ service, msg }) {
+  async requestData({ msg }) {
     return convertFromBuffer(msg.content);
   }
 
@@ -44,7 +44,7 @@ export class BrokerTransport {
    * @param  {[type]} options.data          [description]
    * @return {[type]}                       [description]
    */
-  async prepEmission({ service, path, correlationId, data }) {
+  async prepEmission({ data }) {
     return {
       headers: {},
       buffer: convertToBuffer(data)

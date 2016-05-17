@@ -1,6 +1,4 @@
 
-import uuid from 'node-uuid';
-
 
 export default class Event {
 
@@ -13,16 +11,33 @@ export default class Event {
     this.routingKey    = msg.fields.routingKey;
   }
 
-
   /**
-   * Scoped emit based on the current correlationId
+   * Scoped emit based on the current correlationId. Created as
+   * an arrow function so that is automatically bound to the current
+   * scope.
    * @param  {[type]} event   [description]
    * @param  {[type]} data    [description]
    * @param  {[type]} options [description]
    * @return {[type]}         [description]
    */
-  emit = (path, data, options) => {
+  emit = async (path, data, options) => {
     this.service.emit(path, data, Object.assign({ correlationId: this.correlationId }, options));
+  }
+
+  /**
+   * Reply to a request. Created as
+   * an arrow function so that is automatically bound to the current
+   * scope.
+   * @param  {[type]} data    [description]
+   * @param  {[type]} options [description]
+   * @return {[type]}         [description]
+   */
+  reply = (data) => {
+    if(this.response) {
+      console.log('throwing');
+      throw new Error('Response has already been set');
+    }
+    this.response = data;
   }
 
 };

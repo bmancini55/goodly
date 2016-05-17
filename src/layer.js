@@ -33,6 +33,6 @@ export default class Layer {
   }
 
   async handle(event, next) {
-    return this.handle(event, next);
+    await this.handle(event, next);
   }
 }

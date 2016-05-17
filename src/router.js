@@ -47,5 +47,6 @@ export default class Router {
       await layer.handle(event, next);
     };
     await next();
+    return event.response;
   }
 }

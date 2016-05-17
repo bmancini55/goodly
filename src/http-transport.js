@@ -56,9 +56,7 @@ export class HttpTransport {
     let sendDataEvent = msg.properties.headers.sendDataEvent;
 
     if(sendDataEvent) {
-      let channel       = service.channel();
-      let appExchange   = service.appExchange;
-      let headers       = {
+      let headers = {
         replyHost: this.httpHost,
         replyPort: this.httpPort
       };
@@ -76,8 +74,8 @@ export class HttpTransport {
    * @param  {[type]} options.headers [description]
    * @return {[type]}                 [description]
    */
-  async prepEmission({ service, path, correlationId, data }) {
-    const sendDataEvent = path + '.senddata';
+  async prepEmission({ service, path, correlationId, data, replyTo }) {
+    const sendDataEvent = (replyTo ? 'request.' : '') + path + '.senddata';
     const cache         = await service.get('cache');
     let headers         = {};
     let buffer          = new Buffer('');

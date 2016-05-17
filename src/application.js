@@ -1,17 +1,15 @@
 
-import http from 'http';
 import amqp from 'amqplib';
 import uuid from 'node-uuid';
 import Debug from 'debug';
-import { convertToBuffer, convertFromBuffer } from './util';
 import Router from './router';
 import Event from './event';
 import memoryCache from './memory-cache';
 import brokerTransport from './broker-transport';
-
-const debug = Debug('goodly:core');
+const debug = Debug('goodly');
 
 export default class {
+
 
   /**
    * [construtor description]
@@ -25,12 +23,13 @@ export default class {
     this._broker;
     this._channel;
     this._router;
+    this._requests = [];
     this._settings = {};
     this._bindings = {};
     this._cache = undefined;
     this._transport = undefined;
     this._deferredBindings = [];
-    debug('created service %s', name);
+    debug(this.name + ' created');
   }
 
   /**
@@ -66,10 +65,10 @@ export default class {
    * @param  {[type]} brokerPath [description]
    * @return {[type]}            [description]
    */
-  async start({ brokerPath, httpHost, httpPort }) {
+  async start({ brokerPath }) {
     this._broker = await amqp.connect('amqp://' + brokerPath);
     this._channel = await this._broker.createChannel();
-    debug('connected to RabbitMQ %s', brokerPath);
+    debug(this.name + ' connected to RabbitMQ %s', brokerPath);
 
     // start the cache
     let cache = await this.lazyCache();
@@ -87,14 +86,19 @@ export default class {
     await channel.bindExchange(this.name, this.appExchange, '');
     await channel.assertQueue(this.name, { durable: true });
 
+    // setup exclusive queue for requestion/response
+    this.replyTo = (await channel.assertQueue('', { exclusive: true })).queue;
+
     // attach deferred listeners
     for(let binding of this._deferredBindings) {
       await this.on.apply(this, binding);
     }
 
-    // start consuming main channel
-    const queue = this.name;
-    channel.consume(queue, (msg) => this._onMsg(msg).catch(e => console.log(e.stack)));
+    // start consuming service channel
+    await channel.consume(this.name, (msg) => this._onMsg(msg).catch(e => console.log(e.stack)));
+
+    // start consuming reply channel
+    await this._consumeReplyQueue();
   }
 
   /**
@@ -158,19 +162,19 @@ export default class {
    * @param  {Object} options.headers:      inputHeaders  [description]
    * @return {[type]}                       [description]
    */
-  async emit(path, data = '', { correlationId = uuid.v4(), headers: inputHeaders = {} } = {}) {
-    debug('emit %s %s', path, correlationId);
+  async emit(path, data = '', { correlationId = uuid.v4(), replyTo, headers: inputHeaders = {} } = {}) {
+    debug(this.name + ' emit %s %s', path, correlationId);
     const channel = this.channel();
     const transport = this._transport;
 
     // create the buffer and modify the headers
-    let { buffer, headers } = await transport.prepEmission({ service: this, path, correlationId, data })
+    let { buffer, headers } = await transport.prepEmission({ service: this, path, correlationId, data, replyTo });
 
     // apply user overriden headers with transport generated headers
     headers = Object.assign(headers, inputHeaders);
 
     // publish into the channel
-    await channel.publish(this.appExchange, path, buffer, { correlationId, headers });
+    await channel.publish(this.appExchange, path, buffer, { correlationId, replyTo, headers });
   }
 
 
@@ -199,7 +203,7 @@ export default class {
       this._bindings[path] = true;
     }
 
-    debug('listens to %s', path);
+    debug(this.name + ' listens to %s', path);
   }
 
   /**
@@ -209,11 +213,10 @@ export default class {
    */
   async _onMsg(msg) {
     let correlationId = msg.properties.correlationId;
-    let sendDataEvent = msg.properties.headers.sendDataEvent;
     let path          = msg.fields.routingKey;
     let channel       = this.channel();
     let transport     = this._transport;
-    debug('on %s %s', path, correlationId);
+    debug(this.name + ' on %s %s', path, correlationId);
 
     try {
 
@@ -224,7 +227,11 @@ export default class {
       let event = new Event({ service: this, msg: msg, data: data });
 
       // processing message
-      await this.handle(path, event);
+      let result = await this._handle(path, event);
+
+      // perform replyTo
+      if(msg.properties.replyTo)
+        await this._respond(msg, result, { correlationId });
 
       // ack the message so that prefetch works
       await channel.ack(msg);
@@ -237,23 +244,92 @@ export default class {
     }
   }
 
+
   /**
    * [dispatch description]
    * @param  {[type]} path [description]
    * @param  {[type]} msg  [description]
    * @return {[type]}      [description]
    */
-  async handle(path, event) {
+  async _handle(path, event) {
     let router = this._router;
 
     // no routes
     if (!router) {
-      debug('no routes defined on app');
+      debug(this.name + ' no routes defined on app');
       return;
     }
 
     // dispatch into router and return result
     let result = await router.handle(path, event);
     return result;
+  }
+
+
+  /**
+   * Performs a request in a request/response interaction. Similar
+   * to the broadcast message.
+   * @param  {[type]} path                  [description]
+   * @param  {String} data                  [description]
+   * @param  {[type]} options.correlationId [description]
+   * @param  {Object} options.headers:      inputHeaders  [description]
+   * @return {[type]}                       [description]
+   */
+  async request(path, data = '', { correlationId = uuid.v4() } = {}) {
+    debug(this.name + ' request %s %s', path, correlationId);
+    const replyTo = this.replyTo;
+
+    // publish the event and include the correlationId and the replyTo queue
+    return new Promise((resolve) => {
+      this._requests[correlationId] = (msg) => resolve(msg);
+      this.emit(path, data, { correlationId, replyTo });
+    });
+
+  }
+
+  /**
+   * Responds to a request by replying directly to the queue. This is similar
+   * to emit and can probably be rolled into it with some conditional logic
+   * to prevent duplication.
+   * @param  {[type]} msg                   [description]
+   * @param  {String} data                  [description]
+   * @param  {[type]} options.correlationId [description]
+   * @param  {Object} options.header:       inputHeaders  [description]
+   * @return {[type]}                       [description]
+   */
+  async _respond(msg, data = '', { correlationId, header: inputHeaders = {} }) {
+    debug(this.name + ' respond to %s', correlationId);
+    const channel = this.channel();
+    const transport = this._transport;
+    const path    = msg.fields.routingKey;
+    const replyTo = msg.properties.replyTo;
+
+    // create the buffer and modify the headers
+    let { buffer, headers } = await transport.prepEmission({ service: this, path, correlationId, data });
+
+    // apply user overriden headers with transport generated headers
+    headers = Object.assign(headers, inputHeaders);
+
+    // publish to the queue
+    await channel.sendToQueue(replyTo, buffer, { correlationId, headers, noAck: true });
+  }
+
+  /**
+   * Consumes the reply queue
+   * @return {[type]} [description]
+   */
+  async _consumeReplyQueue() {
+    const channel = this.channel();
+    const transport = this._transport;
+    const handler = async (msg) => {
+      let correlationId = msg.properties.correlationId;
+      debug(this.name + ' received response for %s', correlationId);
+
+      if(this._requests[correlationId]) {
+        let data = await transport.requestData({ service: this, msg });
+        this._requests[correlationId](data);
+      }
+    };
+    channel.consume(this.replyTo, handler, { noAck: true });
   }
 }
