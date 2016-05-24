@@ -6,6 +6,7 @@
   "scripts": {
     "build": "babel src --source-maps --out-dir dist ",
     "prepublish": "npm run build",
+    "watch": "nodemon --ignore dist --exec \"npm run build\" src",
     "test": "mocha --compilers js:babel-register --require babel-polyfill --recursive \"src/**/*.spec.js\""
   },
   "repository": "bmancini55/goodly",
@@ -37,6 +38,7 @@
     "chai": "^3.5.0",
     "eslint": "^2.8.0",
     "mocha": "^2.4.5",
+    "nodemon": "^1.9.2",
     "sinon": "^1.17.3"
   }
 }
