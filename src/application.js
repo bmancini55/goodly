@@ -65,7 +65,7 @@ export default class {
    * @param  {[type]} brokerPath [description]
    * @return {[type]}            [description]
    */
-  async start({ brokerPath }) {
+  async start({ brokerPath, concurrent = 5 }) {
     this._broker = await amqp.connect('amqp://' + brokerPath);
     this._channel = await this._broker.createChannel();
     debug(this.name + ' connected to RabbitMQ %s', brokerPath);
@@ -84,7 +84,7 @@ export default class {
     await channel.assertExchange(appExchange, 'fanout');
     await channel.assertExchange(this.name, 'topic');
     await channel.bindExchange(this.name, this.appExchange, '');
-    await channel.assertQueue(this.name, { durable: true });
+    await channel.assertQueue(this.name, { expires: 3600000 });
 
     // setup exclusive queue for requestion/response
     this.replyTo = (await channel.assertQueue('', { exclusive: true })).queue;
@@ -93,6 +93,9 @@ export default class {
     for(let binding of this._deferredBindings) {
       await this.on.apply(this, binding);
     }
+
+    // configure prefetch for the channel
+    await channel.prefetch(concurrent);
 
     // start consuming service channel
     await channel.consume(this.name, (msg) => this._onMsg(msg).catch(e => console.log(e.stack)));
