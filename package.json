@@ -1,6 +1,6 @@
 {
   "name": "goodly",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Microservice framework",
   "main": "dist/index.js",
   "scripts": {
