@@ -8,7 +8,8 @@ import httpTransport from './http-transport';
 export { memoryCache, redisCache, httpTransport };
 
 /**
- * Factory function that automatically starts the service
+ * Factory function that automatically starts the service if the brokerPath
+ * is supplied. Otherwise it will simply return the service
  * @param  {[type]}   options.name       [description]
  * @param  {[type]}   options.brokerPath [description]
  * @param  {[type]}   options.transport  [description]
@@ -16,14 +17,12 @@ export { memoryCache, redisCache, httpTransport };
  * @param  {Function} callback           [description]
  * @return {[type]}                      [description]
  */
-export function connect({ name, brokerPath, transport, cache }, callback) {
-
-  if(! (typeof arguments[0] == 'string' && typeof arguments[1] == 'string' && typeof arguments[2] !== 'function')) {
-
-  }
-
+export default function goodly({ name, brokerPath, transport, cache }, callback) {
   let service = new Application({ name });
   let wait = [];
+
+  if(!brokerPath)
+    return service;
 
   if(transport)
     wait.push(service.set('transport', transport));
@@ -33,8 +32,8 @@ export function connect({ name, brokerPath, transport, cache }, callback) {
 
   return Promise
     .all(wait)
-    .then(() => service.start({ brokerPath }))
     .then(() => callback(service))
+    .then(() => service.start({ brokerPath }))
     .catch(e => {
       return service
         .stop()
@@ -43,18 +42,9 @@ export function connect({ name, brokerPath, transport, cache }, callback) {
     });
 };
 
-/**
- * Default export of the application factory
- * @param  {[type]} options [description]
- * @return {[type]}         [description]
- */
-export default function app(options) {
-  return new Application(options);
-};
-
-app.memoryCache   = memoryCache;
-app.redisCache    = redisCache;
-app.httpTransport = httpTransport;
+goodly.memoryCache   = memoryCache;
+goodly.redisCache    = redisCache;
+goodly.httpTransport = httpTransport;
 
 
 
