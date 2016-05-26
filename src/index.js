@@ -1,11 +1,6 @@
 import 'babel-regenerator-runtime';
 import 'source-map-support/register';
 import Application from './application';
-import memoryCache from './memory-cache';
-import redisCache from './redis-cache';
-import httpTransport from './http-transport';
-
-export { memoryCache, redisCache, httpTransport };
 
 /**
  * Factory function that automatically starts the service if the brokerPath
@@ -41,10 +36,6 @@ export default function goodly({ name, brokerPath, transport, cache }, callback)
         .catch(() => console.log(e.stack));
     });
 };
-
-goodly.memoryCache   = memoryCache;
-goodly.redisCache    = redisCache;
-goodly.httpTransport = httpTransport;
 
 
 

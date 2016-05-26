@@ -1,9 +1,4 @@
 
-import Debug from 'debug';
-import { convertToBuffer, convertFromBuffer } from './util';
-
-const debug = Debug('goodly:broker-transport');
-
 export default async (options) => {
   return new BrokerTransport(options);
 };
@@ -33,7 +28,7 @@ export class BrokerTransport {
    * Fetches the data directly from the message
    */
   async requestData({ msg }) {
-    return convertFromBuffer(msg.content);
+    return msg.content;
   }
 
   /**
@@ -46,8 +41,8 @@ export class BrokerTransport {
    */
   async prepEmission({ data }) {
     return {
-      headers: {},
-      buffer: convertToBuffer(data)
+      headers: { },
+      send: data
     };
   }
 

@@ -1,36 +1,36 @@
 
-export function convertToBuffer(result) {
-  let type;
-  let data;
-
-  if(result instanceof Buffer) {
-    type = 'buffer';
-    data = result;
-  }
-  else if(typeof result === 'object') {
-    type = 'object';
-    data = new Buffer(JSON.stringify(result));
-  }
-  else {
-    type = typeof result;
-    data = new Buffer(result);
-  }
-  return Buffer.concat([ new Buffer(type), data ]);
+module.exports = {
+  convertToBuffer,
+  convertFromBuffer
 };
 
-export function convertFromBuffer(buffer) {
-  let text = buffer.toString();
-  let result;
+function convertFromBuffer(contentType, buffer) {
+  switch(contentType) {
+    case 'buffer':
+      return buffer;
+    case 'object':
+      return JSON.parse(buffer.toString());
+    default:
+      return buffer.toString();
+  };
+};
 
-  if(text.startsWith('buffer')) {
-    result = new Buffer(text.substring('buffer'.length));
+function convertToBuffer(data) {
+  let contentType, buffer;
+  if(data instanceof Buffer) {
+    contentType = 'buffer';
+    buffer      = data;
   }
-  else if(text.startsWith('object')) {
-    result = text.substring('object'.length);
-    result = JSON.parse(result);
+  else if(typeof data === 'object') {
+    contentType = 'object';
+    buffer = new Buffer(JSON.stringify(data));
   }
   else {
-    result = text.substring('string'.length);
+    contentType = typeof data;
+    buffer = new Buffer(data);
   }
-  return result;
-};
+  return {
+    contentType,
+    buffer
+  };
+}

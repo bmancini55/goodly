@@ -6,6 +6,7 @@ import Router from './router';
 import Event from './event';
 import memoryCache from './memory-cache';
 import brokerTransport from './broker-transport';
+import { convertToBuffer, convertFromBuffer } from './util';
 const debug = Debug('goodly');
 
 export default class {
@@ -136,6 +137,10 @@ export default class {
     return this._cache;
   }
 
+  /**
+   * Lazy createion of the default transport
+   * @return {[type]} [description]
+   */
   async lazyTransport() {
     if(!this._transport) {
       this._transport = await brokerTransport();
@@ -171,10 +176,11 @@ export default class {
     const transport = this._transport;
 
     // create the buffer and modify the headers
-    let { buffer, headers } = await transport.prepEmission({ service: this, path, correlationId, data, replyTo });
+    let { send, headers } = await transport.prepEmission({ service: this, path, correlationId, data, replyTo });
+    let { buffer, contentType } = convertToBuffer(send);
 
     // apply user overriden headers with transport generated headers
-    headers = Object.assign(headers, inputHeaders);
+    headers = Object.assign(headers, inputHeaders, { contentType });
 
     // publish into the channel
     await channel.publish(this.appExchange, path, buffer, { correlationId, replyTo, headers });
@@ -216,35 +222,30 @@ export default class {
    */
   async _onMsg(msg) {
     let correlationId = msg.properties.correlationId;
+    let contentType   = msg.properties.headers.contentType;
     let path          = msg.fields.routingKey;
     let channel       = this.channel();
     let transport     = this._transport;
     debug(this.name + ' on %s %s', path, correlationId);
 
-    try {
+    // fetch the data from the transport
+    let buffer = await transport.requestData({ service: this, msg });
 
-      // fetch the data from the transport
-      let data = await transport.requestData({ service: this, msg });
+    // convert from buffer into
+    let data = convertFromBuffer(contentType, buffer);
 
-      // construct event object
-      let event = new Event({ service: this, msg: msg, data: data });
+    // construct event object
+    let event = new Event({ service: this, msg: msg, data: data });
 
-      // processing message
-      let result = await this._handle(path, event);
+    // processing message
+    let result = await this._handle(path, event);
 
-      // perform replyTo
-      if(msg.properties.replyTo)
-        await this._respond(msg, result, { correlationId });
+    // perform replyTo
+    if(msg.properties.replyTo)
+      await this._respond(msg, result, { correlationId });
 
-      // ack the message so that prefetch works
-      await channel.ack(msg);
-    }
-    catch(ex) {
-      console.log('Listen failure: %s', ex.stack);
-
-      // ack the message as complete
-      channel.nack(msg, false, false);
-    }
+    // ack the message so that prefetch works
+    await channel.ack(msg);
   }
 
 
@@ -308,10 +309,13 @@ export default class {
     const replyTo = msg.properties.replyTo;
 
     // create the buffer and modify the headers
-    let { buffer, headers } = await transport.prepEmission({ service: this, path, correlationId, data });
+    let { send, headers } = await transport.prepEmission({ service: this, path, correlationId, data });
+
+    // convert to buffer
+    let { contentType, buffer } = convertToBuffer(send);
 
     // apply user overriden headers with transport generated headers
-    headers = Object.assign(headers, inputHeaders);
+    headers = Object.assign(headers, inputHeaders, { contentType });
 
     // publish to the queue
     await channel.sendToQueue(replyTo, buffer, { correlationId, headers, noAck: true });
@@ -326,10 +330,12 @@ export default class {
     const transport = this._transport;
     const handler = async (msg) => {
       let correlationId = msg.properties.correlationId;
+      let contentType   = msg.properties.headers.contentType;
       debug(this.name + ' received response for %s', correlationId);
 
       if(this._requests[correlationId]) {
-        let data = await transport.requestData({ service: this, msg });
+        let buffer = await transport.requestData({ service: this, msg });
+        let data   = convertFromBuffer(contentType, buffer);
         this._requests[correlationId](data);
       }
     };
