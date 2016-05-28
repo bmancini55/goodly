@@ -119,7 +119,7 @@ export default class {
    * Lazy creation of the default router if one is not specified
    * @return {[type]} [description]
    */
-  lazyrouter() {
+  layzRouter() {
     if (!this._router) {
       this._router = new Router();
     }
@@ -170,7 +170,7 @@ export default class {
    * @param  {Object} options.headers:      inputHeaders  [description]
    * @return {[type]}                       [description]
    */
-  async emit(path, data = '', { correlationId = uuid.v4(), replyTo, headers: inputHeaders = {} } = {}) {
+  async emit(path, data = '', { correlationId = uuid.v4(), replyTo, headers: inputHeaders = {} } = {}, sendToQueue) {
     debug(this.name + ' emit %s %s', path, correlationId);
     const channel = this.channel();
     const transport = this._transport;
@@ -183,7 +183,10 @@ export default class {
     headers = Object.assign(headers, inputHeaders, { contentType });
 
     // publish into the channel
-    await channel.publish(this.appExchange, path, buffer, { correlationId, replyTo, headers });
+    if(sendToQueue)
+      await channel.sendToQueue(replyTo, buffer, { correlationId, headers, noAck: true });
+    else
+      await channel.publish(this.appExchange, path, buffer, { correlationId, replyTo, headers });
   }
 
 
@@ -203,7 +206,7 @@ export default class {
     }
 
     // attach handler to the router
-    let router = this.lazyrouter();
+    let router = this.layzRouter();
     router.on(path, fn);
 
     // bind the queue if we haven't already
@@ -240,9 +243,9 @@ export default class {
     // processing message
     let result = await this._handle(path, event);
 
-    // perform replyTo
+    // perform replyTo by directly emitting into the reply to queue
     if(msg.properties.replyTo)
-      await this._respond(msg, result, { correlationId });
+      await this.emit(msg, result, { correlationId }, msg.properties.replyTo);
 
     // ack the message so that prefetch works
     await channel.ack(msg);
@@ -289,36 +292,6 @@ export default class {
       this.emit(path, data, { correlationId, replyTo });
     });
 
-  }
-
-  /**
-   * Responds to a request by replying directly to the queue. This is similar
-   * to emit and can probably be rolled into it with some conditional logic
-   * to prevent duplication.
-   * @param  {[type]} msg                   [description]
-   * @param  {String} data                  [description]
-   * @param  {[type]} options.correlationId [description]
-   * @param  {Object} options.header:       inputHeaders  [description]
-   * @return {[type]}                       [description]
-   */
-  async _respond(msg, data = '', { correlationId, header: inputHeaders = {} }) {
-    debug(this.name + ' respond to %s', correlationId);
-    const channel = this.channel();
-    const transport = this._transport;
-    const path    = msg.fields.routingKey;
-    const replyTo = msg.properties.replyTo;
-
-    // create the buffer and modify the headers
-    let { send, headers } = await transport.prepEmission({ service: this, path, correlationId, data });
-
-    // convert to buffer
-    let { contentType, buffer } = convertToBuffer(send);
-
-    // apply user overriden headers with transport generated headers
-    headers = Object.assign(headers, inputHeaders, { contentType });
-
-    // publish to the queue
-    await channel.sendToQueue(replyTo, buffer, { correlationId, headers, noAck: true });
   }
 
   /**
