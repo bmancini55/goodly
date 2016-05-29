@@ -4,8 +4,7 @@ import uuid from 'node-uuid';
 import Debug from 'debug';
 import Router from './router';
 import Event from './event';
-import memoryCache from './memory-cache';
-import brokerTransport from './broker-transport';
+import brokerTransport from './transport-broker';
 import { convertToBuffer, convertFromBuffer } from './util';
 const debug = Debug('goodly');
 
@@ -71,10 +70,6 @@ export default class {
     this._channel = await this._broker.createChannel();
     debug(this.name + ' connected to RabbitMQ %s', brokerPath);
 
-    // start the cache
-    let cache = await this.lazyCache();
-    cache.start();
-
     // start the transport mechanism
     let transport = await this.lazyTransport();
     transport.start();
@@ -112,7 +107,9 @@ export default class {
   async stop() {
     this._broker.close();
     this._transport.close();
-    this._cache.close();
+
+    if(this._cache)
+      this._cache.close();
   }
 
   /**
@@ -124,17 +121,6 @@ export default class {
       this._router = new Router();
     }
     return this._router;
-  }
-
-  /**
-   * Configure the cache
-   * @return {[type]} [description]
-   */
-  async lazyCache() {
-    if(!this._cache) {
-      this._cache = await memoryCache();
-    }
-    return this._cache;
   }
 
   /**
@@ -229,6 +215,7 @@ export default class {
     let path          = msg.fields.routingKey;
     let channel       = this.channel();
     let transport     = this._transport;
+    let router        = this._router;
     debug(this.name + ' on %s %s', path, correlationId);
 
     // fetch the data from the transport
@@ -241,7 +228,7 @@ export default class {
     let event = new Event({ service: this, msg: msg, data: data });
 
     // processing message
-    let result = await this._handle(path, event);
+    let result = await router.handle(path, event);
 
     // perform replyTo by directly emitting into the reply to queue
     if(msg.properties.replyTo)
@@ -249,27 +236,6 @@ export default class {
 
     // ack the message so that prefetch works
     await channel.ack(msg);
-  }
-
-
-  /**
-   * [dispatch description]
-   * @param  {[type]} path [description]
-   * @param  {[type]} msg  [description]
-   * @return {[type]}      [description]
-   */
-  async _handle(path, event) {
-    let router = this._router;
-
-    // no routes
-    if (!router) {
-      debug(this.name + ' no routes defined on app');
-      return;
-    }
-
-    // dispatch into router and return result
-    let result = await router.handle(path, event);
-    return result;
   }
 
 
