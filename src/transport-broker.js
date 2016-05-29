@@ -1,10 +1,5 @@
 
-export default async (options) => {
-  return new BrokerTransport(options);
-};
-
-
-export class BrokerTransport {
+class BrokerTransport {
 
   constructor() {
   }
@@ -45,5 +40,8 @@ export class BrokerTransport {
       send: data
     };
   }
-
 }
+
+module.exports = function(options) {
+  return new BrokerTransport(options);
+};

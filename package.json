@@ -7,7 +7,7 @@
     "build": "babel src --source-maps --out-dir dist ",
     "prepublish": "npm run build",
     "watch": "nodemon --ignore dist --exec \"npm run build\" src",
-    "test": "mocha --compilers js:babel-register --require babel-polyfill --recursive \"src/**/*.spec.js\""
+    "test": "mocha --compilers js:babel-register --require babel-polyfill"
   },
   "repository": "bmancini55/goodly",
   "keywords": [
