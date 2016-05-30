@@ -27,8 +27,9 @@ export default function goodly({ name, brokerPath, transport, cache }, callback)
 
   return Promise
     .all(wait)
-    .then(() => callback(service))
+    .then(() => callback && callback(service))
     .then(() => service.start({ brokerPath }))
+    .then(() => service)
     .catch(e => {
       return service
         .stop()

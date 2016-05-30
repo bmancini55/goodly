@@ -157,7 +157,6 @@ export default class {
    * @return {[type]}                       [description]
    */
   async emit(path, data = '', { correlationId = uuid.v4(), replyTo, headers: inputHeaders = {} } = {}, sendToQueue) {
-    debug(this.name + ' emit %s %s', path, correlationId);
     const channel = this.channel();
     const transport = this._transport;
 
@@ -169,10 +168,14 @@ export default class {
     headers = Object.assign(headers, inputHeaders, { contentType });
 
     // publish into the channel
-    if(sendToQueue)
-      await channel.sendToQueue(replyTo, buffer, { correlationId, headers, noAck: true });
-    else
+    if(sendToQueue) {
+      debug(this.name + ' reply to %s for %s', sendToQueue, correlationId);
+      await channel.sendToQueue(sendToQueue, buffer, { correlationId, headers, noAck: true });
+    }
+    else {
+      debug(this.name + ' emit %s %s', path, correlationId);
       await channel.publish(this.appExchange, path, buffer, { correlationId, replyTo, headers });
+    }
   }
 
 
@@ -232,7 +235,7 @@ export default class {
 
     // perform replyTo by directly emitting into the reply to queue
     if(msg.properties.replyTo)
-      await this.emit(msg, result, { correlationId }, msg.properties.replyTo);
+      await this.emit(path, result, { correlationId }, msg.properties.replyTo);
 
     // ack the message so that prefetch works
     await channel.ack(msg);
