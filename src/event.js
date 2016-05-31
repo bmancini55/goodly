@@ -1,6 +1,6 @@
 
 
-export default class Event {
+class Event {
 
   constructor({ service, msg, data }) {
     this.service       = service;
@@ -34,10 +34,12 @@ export default class Event {
    */
   reply = (data) => {
     if(this.response) {
-      console.log('throwing');
       throw new Error('Response has already been set');
     }
     this.response = data;
   }
 
 };
+
+
+module.exports = Event;
