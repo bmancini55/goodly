@@ -1,13 +1,12 @@
 
 
-export default class Layer {
+class Layer {
 
   constructor(path, fn) {
-
+    this.path   = path;
     this.handle = fn;
-    this.name = fn.name || '<anonymous>';
+    this.name   = fn.name || '<anonymous>';
 
-    // mimic path-to-regexp for amqp events - https://github.com/pillarjs/path-to-regexp
     this.regexp = new RegExp('^' + path + '$', 'i');
 
     // allow matching all
@@ -36,3 +35,5 @@ export default class Layer {
     await this.handle(event, next);
   }
 }
+
+module.exports = Layer;
