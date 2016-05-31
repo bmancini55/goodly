@@ -1,7 +1,7 @@
 
 let chai      = require('chai');
 let expect    = chai.expect;
-let transport = require('../src/transport-broker');
+let transport = require('../../src/transport-broker');
 
 
 describe('transport-broker', () => {

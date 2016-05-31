@@ -7,7 +7,9 @@
     "build": "babel src --source-maps --out-dir dist ",
     "prepublish": "npm run build",
     "watch": "nodemon --ignore dist --exec \"npm run build\" src",
-    "test": "mocha --compilers js:babel-register --require babel-polyfill"
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "mocha --compilers js:babel-register --require babel-regenerator-runtime test/unit",
+    "test:integration": "mocha --compilers js:babel-register --require babel-regenerator-runtime test/integration"
   },
   "repository": "bmancini55/goodly",
   "keywords": [

@@ -105,11 +105,14 @@ export default class {
    * @return {[type]} [description]
    */
   async stop() {
-    this._broker.close();
-    this._transport.close();
+    if(this._broker)
+      await this._broker.close();
+
+    if(this._transport);
+      await this._transport.stop();
 
     if(this._cache)
-      this._cache.close();
+      await this._cache.stop();
   }
 
   /**

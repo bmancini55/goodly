@@ -1,7 +1,7 @@
 
 let chai   = require('chai');
 let expect = chai.expect;
-let util   = require('../src/util');
+let util   = require('../../src/util');
 
 describe('util', () => {
 
