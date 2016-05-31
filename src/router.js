@@ -1,15 +1,10 @@
 
 import Layer from './layer';
 
-export default class Router {
+class Router {
   stack = []
 
-  on(path, fn) {
-    let layer = new Layer(path, fn);
-    this.stack.push(layer);
-  }
-
-  use(path, fn) {
+  add(path, fn) {
     let layer;
 
     if(typeof(path) === 'function')
@@ -50,3 +45,5 @@ export default class Router {
     return event.response;
   }
 }
+
+module.exports = Router;

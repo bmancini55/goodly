@@ -199,7 +199,7 @@ export default class {
 
     // attach handler to the router
     let router = this.layzRouter();
-    router.on(path, fn);
+    router.add(path, fn);
 
     // bind the queue if we haven't already
     if(!this._bindings[path]) {
