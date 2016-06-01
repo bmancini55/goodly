@@ -1,6 +1,6 @@
 /**
- * Integration test for validating emit + listen works
- * as expected for a simple use case.
+ * Integration test to ensure that request/response
+ * functionality has not regressed
  */
 
 const chai   = require('chai');
@@ -9,7 +9,7 @@ const expect = chai.expect;
 const goodly   = require('../../src').default;
 const RABBITMQ = process.env.RABBITMQ || '192.168.99.100';
 
-describe('Integration listen & emit', () => {
+describe('Acceptance: request & response', () => {
   let service1;
   let service2;
 
@@ -23,16 +23,15 @@ describe('Integration listen & emit', () => {
     await service2.stop();
   });
 
-  it('should listen to emitted events', async (done) => {
-
-    await service2.on('message', async ({ data }) => {
-      expect(data).to.equal('hello world');
+  it('should wait for reply', async (done) => {
+    await service2.on('request', async ({ data, reply }) => {
+      await reply(data + ' world');
     });
 
-    await service1.emit('message', 'hello world');
+    let result = await service1.request('request', 'hello');
+    expect(result).to.equal('hello world');
     done();
   });
 
 });
-
 

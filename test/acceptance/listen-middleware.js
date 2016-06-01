@@ -9,7 +9,7 @@ const expect = chai.expect;
 const goodly   = require('../../src').default;
 const RABBITMQ = process.env.RABBITMQ || '192.168.99.100';
 
-describe('Integration listen middleware', () => {
+describe('Acceptance: listen middleware', () => {
   let service1;
   let service2;
 
