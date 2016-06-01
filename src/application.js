@@ -8,8 +8,7 @@ import brokerTransport from './transport-broker';
 import { convertToBuffer, convertFromBuffer } from './util';
 const debug = Debug('goodly');
 
-export default class {
-
+class Application {
 
   /**
    * [construtor description]
@@ -287,3 +286,5 @@ export default class {
     channel.consume(this.replyTo, handler, { noAck: true });
   }
 }
+
+module.exports = Application;
