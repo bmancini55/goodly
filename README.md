@@ -1,5 +1,8 @@
 # goodly
 
+[![Build Status][travis-image]][travis-url]
+[![Coverage Status][coveralls-image]][coveralls-url]
+
 Goodly is an unopininated microservice communication framework. It manages the low-level infrastructure so you can focus on the important stuff: handling events.
 
 Goodly:
@@ -47,3 +50,7 @@ Refer to the full example at https://www.github.com/bmancini55/goodly-example.
 
 
 
+[travis-image]: https://travis-ci.org/bmancini55/goodly.svg?branch=master
+[travis-url]: https://travis-ci.org/bmancini55/goodly
+[coveralls-image]: https://coveralls.io/repos/github/bmancini55/goodly/badge.svg?branch=master
+[coveralls-url]: https://coveralls.io/github/bmancini55/goodly?branch=master
