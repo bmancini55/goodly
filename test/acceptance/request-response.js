@@ -6,7 +6,7 @@
 const chai   = require('chai');
 const expect = chai.expect;
 
-const goodly   = require('../../src').default;
+const goodly   = require('../../src');
 const RABBITMQ = process.env.RABBITMQ || '192.168.99.100';
 
 describe('Acceptance: request & response', () => {
