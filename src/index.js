@@ -1,6 +1,6 @@
-import 'babel-regenerator-runtime';
-import 'source-map-support/register';
-import Application from './application';
+require('babel-regenerator-runtime');
+require('source-map-support/register');
+const Application = require('./application');
 
 /**
  * Factory function that automatically starts the service if the brokerPath
@@ -12,7 +12,7 @@ import Application from './application';
  * @param  {Function} callback           [description]
  * @return {[type]}                      [description]
  */
-export default function goodly({ name, brokerPath, transport, cache }, callback) {
+module.exports = function goodly({ name, brokerPath, transport, cache }, callback) {
   let service = new Application({ name });
   let wait = [];
 
