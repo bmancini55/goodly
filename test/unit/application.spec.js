@@ -51,8 +51,8 @@ describe('Application', () => {
       stop: sinon.stub(),
       prepEmission: sinon.stub().returns({ send: 'send', headers: { }}),
       requestData: sinon.stub()
-    }
-  })
+    };
+  });
 
   afterEach(() => {
     amqp.connect.restore();
@@ -143,43 +143,6 @@ describe('Application', () => {
       await app.set('transport', transport);
       return start;
     };
-    describe('if transport is called', () => {
-      it('should pass the service', (done) => {
-        start()
-          .then(() => app.emit('test', 'data'))
-          .then(() => expect(transport.prepEmission.args[0][0].service).to.deep.equal(app))
-          .then(() => done())
-          .catch(done);
-      });
-      it('should pass the path', (done) => {
-        start()
-          .then(() => app.emit('test', 'data'))
-          .then(() => expect(transport.prepEmission.args[0][0].path).to.equal('test'))
-          .then(() => done())
-          .catch(done);
-      });
-      it('should pass the correlationId', (done) => {
-        start()
-          .then(() => app.emit('test', 'data'))
-          .then(() => expect(transport.prepEmission.args[0][0].correlationId).is.not.undefined)
-          .then(() => done())
-          .catch(done);
-      });
-      it('should pass the raw data', (done) => {
-        start()
-          .then(() => app.emit('test', 'data'))
-          .then(() => expect(transport.prepEmission.args[0][0].data).to.equal('data'))
-          .then(() => done())
-          .catch(done);
-      });
-      it('should pass the reply queue', (done) => {
-        start()
-          .then(() => app.emit('test', 'data', { replyTo: 'replyHere' }))
-          .then(() => expect(transport.prepEmission.args[0][0].replyTo).to.equal('replyHere'))
-          .then(() => done())
-          .catch(done);
-      });
-    });
     // describe('when sending to a queue directly', () => {
     //   it('should include the correlationId', (done) => {
 

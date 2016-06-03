@@ -4,7 +4,6 @@ import uuid from 'node-uuid';
 import Debug from 'debug';
 import Router from './router';
 import Event from './event';
-import brokerTransport from './transport-broker';
 import { convertToBuffer, convertFromBuffer } from './util';
 const debug = Debug('goodly');
 
@@ -21,41 +20,12 @@ class Application {
     this.appExchange = appExchange;
     this._broker;
     this._channel;
-    this._router;
+    this._router = new Router();
     this._requests = [];
     this._settings = {};
     this._bindings = {};
-    this._cache = undefined;
-    this._transport = undefined;
     this._deferredBindings = [];
     debug(this.name + ' created');
-  }
-
-  /**
-   * Store configuration data for the app
-   * @param {[type]} key    [description]
-   * @param {[type]} object [description]
-   */
-  async set(key, object) {
-    let value = object;
-    if(object.then)
-      value = await object;
-
-    if(this.hasOwnProperty(key))
-      this[key] = value;
-    else if (this.hasOwnProperty('_' + key))
-      this['_' + key] = value;
-    else
-      this._settings[key] = value;
-  }
-
-  /**
-   * Gets configuration values from the app
-   * @param  {[type]} key [description]
-   * @return {[type]}     [description]
-   */
-  async get(key) {
-    return this[key] || this['_' + key] || this._settings[key];
   }
 
   /**
@@ -68,10 +38,6 @@ class Application {
     this._broker = await amqp.connect('amqp://' + brokerPath);
     this._channel = await this._broker.createChannel();
     debug(this.name + ' connected to RabbitMQ %s', brokerPath);
-
-    // start the transport mechanism
-    let transport = await this.lazyTransport();
-    transport.start();
 
     // setup service exchange and queue
     const channel = this._channel;
@@ -100,42 +66,14 @@ class Application {
   }
 
   /**
-   * Stops the service
+   * Closes the service
    * @return {[type]} [description]
    */
   async stop() {
-    if(this._broker)
+    if(this._broker) {
       await this._broker.close();
-
-    if(this._transport);
-      await this._transport.stop();
-
-    if(this._cache)
-      await this._cache.stop();
-  }
-
-  /**
-   * Lazy creation of the default router if one is not specified
-   * @return {[type]} [description]
-   */
-  layzRouter() {
-    if (!this._router) {
-      this._router = new Router();
     }
-    return this._router;
   }
-
-  /**
-   * Lazy createion of the default transport
-   * @return {[type]} [description]
-   */
-  async lazyTransport() {
-    if(!this._transport) {
-      this._transport = await brokerTransport();
-    }
-    return this._transport;
-  }
-
 
   /**
    * Gets the connected channel
@@ -149,9 +87,7 @@ class Application {
   }
 
   /**
-   * API for emitting an event at the specified path with data. The transport
-   * will intercept the emission and mutate the data and headers to allow the
-   * to be transmissed via the configured method.
+   * API for emitting an event at the specified path with data.
    * @param  {[type]} path                  [description]
    * @param  {[type]} data                  [description]
    * @param  {[type]} options.correlationId [description]
@@ -160,14 +96,12 @@ class Application {
    */
   async emit(path, data = '', { correlationId = uuid.v4(), replyTo, headers: inputHeaders = {} } = {}, sendToQueue) {
     const channel = this.channel();
-    const transport = this._transport;
 
     // create the buffer and modify the headers
-    let { send, headers } = await transport.prepEmission({ service: this, path, correlationId, data, replyTo });
-    let { buffer, contentType } = convertToBuffer(send);
+    let { buffer, contentType } = convertToBuffer(data);
 
-    // apply user overriden headers with transport generated headers
-    headers = Object.assign(headers, inputHeaders, { contentType });
+    // construct the headers
+    let headers = Object.assign({}, { contentType }, inputHeaders);
 
     // publish into the channel
     if(sendToQueue) {
@@ -187,6 +121,7 @@ class Application {
    */
   async on(path, fn) {
     const channel  = this._channel;
+    const router   = this._router;
     const exchange = this.name;
     const queue    = this.name;
 
@@ -197,7 +132,6 @@ class Application {
     }
 
     // attach handler to the router
-    let router = this.layzRouter();
     router.add(path, fn);
 
     // bind the queue if we haven't already
@@ -219,12 +153,9 @@ class Application {
     let contentType   = msg.properties.headers.contentType;
     let path          = msg.fields.routingKey;
     let channel       = this.channel();
-    let transport     = this._transport;
     let router        = this._router;
+    let buffer        = msg.content;
     debug(this.name + ' on %s %s', path, correlationId);
-
-    // fetch the data from the transport
-    let buffer = await transport.requestData({ service: this, msg });
 
     // convert from buffer into
     let data = convertFromBuffer(contentType, buffer);
@@ -271,14 +202,13 @@ class Application {
    */
   async _consumeReplyQueue() {
     const channel = this.channel();
-    const transport = this._transport;
     const handler = async (msg) => {
       let correlationId = msg.properties.correlationId;
       let contentType   = msg.properties.headers.contentType;
       debug(this.name + ' received response for %s', correlationId);
 
       if(this._requests[correlationId]) {
-        let buffer = await transport.requestData({ service: this, msg });
+        let buffer = msg.content;
         let data   = convertFromBuffer(contentType, buffer);
         this._requests[correlationId](data);
       }
