@@ -9,7 +9,6 @@ describe('Application', () => {
   let app;
   let broker;
   let channel;
-  let transport;
 
   beforeEach(() => {
     app = new Application({ name: 'test' });
@@ -43,15 +42,6 @@ describe('Application', () => {
   beforeEach(() => {
     // stub connect so that it returns our fake broker
     sinon.stub(amqp, 'connect').returns(broker);
-  });
-
-  beforeEach(() => {
-    transport = {
-      start: sinon.stub(),
-      stop: sinon.stub(),
-      prepEmission: sinon.stub().returns({ send: 'send', headers: { }}),
-      requestData: sinon.stub()
-    };
   });
 
   afterEach(() => {
@@ -140,43 +130,82 @@ describe('Application', () => {
   describe('.emit', () => {
     const start = async () => {
       await app.start({ brokerPath: 'broker' });
-      await app.set('transport', transport);
-      return start;
+      return app;
     };
-    // describe('when sending to a queue directly', () => {
-    //   it('should include the correlationId', (done) => {
-
-    //   });
-    //   it('should convert the data to a buffer', (done) => {
-
-    //   });
-    //   it('should merge user supplied headers', (done) => {
-
-    //   });
-    //   it('should apply content-type header based on the buffer', (done) => {
-
-    //   });
-    //   it('should apply transport headers', (done) => {
-
-    //   });
-    // });
-    // describe('when broadcasting message', () => {
-    //   it('should include the correlationId', (done) => {
-
-    //   });
-    //   it('should convert the data to a buffer', (done) => {
-
-    //   });
-    //   it('should merge user supplied headers', (done) => {
-
-    //   });
-    //   it('should apply content-type header based on the buffer', (done) => {
-
-    //   });
-    //   it('should apply transport headers', (done) => {
-
-    //   });
-    // });
+    describe('when sending to a queue directly', () => {
+      it('should call sendToQueue', (done) => {
+        start()
+          .then(() => app.emit('test', 'data', { }, 'direct-queue'))
+          .then(() => expect(channel.sendToQueue.withArgs('direct-queue').called).to.be.true)
+          .then(() => done())
+          .catch(done);
+      });
+      it('should convert the data to a buffer', (done) => {
+        start()
+          .then(() => app.emit('test', 'data', { }, 'direct-queue'))
+          .then(() => expect(channel.sendToQueue.args[0][1]).to.deep.equal(Buffer.from('data')))
+          .then(() => done())
+          .catch(done);
+      });
+      it('should include the correlationId', (done) => {
+        start()
+          .then(() => app.emit('test', 'data', { }, 'direct-queue'))
+          .then(() => expect(channel.sendToQueue.args[0][2].correlationId).is.not.undefined)
+          .then(() => done())
+          .catch(done);
+      });
+      it('should merge user supplied headers', (done) => {
+        start()
+          .then(() => app.emit('test', 'data', { headers: { test: 'header' } }, 'direct-queue'))
+          .then(() => expect(channel.sendToQueue.args[0][2].headers.test).to.equal('header'))
+          .then(() => done())
+          .catch(done);
+      });
+      it('should apply content-type header based on the buffer', (done) => {
+        start()
+          .then(() => app.emit('test', 'data', { }, 'direct-queue'))
+          .then(() => expect(channel.sendToQueue.args[0][2].headers.contentType).to.equal('string'))
+          .then(() => done())
+          .catch(done);
+      });
+    });
+    describe('when broadcasting message', () => {
+      it('should call publish', (done) => {
+        start()
+          .then(() => app.emit('test', 'data', { }))
+          .then(() => expect(channel.publish.withArgs('app', 'test').called).to.be.true)
+          .then(() => done())
+          .catch(done);
+      });
+      it('should convert the data to a buffer', (done) => {
+        start()
+          .then(() => app.emit('test', 'data', { }))
+          .then(() => expect(channel.publish.args[0][2]).to.deep.equal(Buffer.from('data')))
+          .then(() => done())
+          .catch(done);
+      });
+      it('should include the correlationId', (done) => {
+        start()
+          .then(() => app.emit('test', 'data', { }))
+          .then(() => expect(channel.publish.args[0][3].correlationId).is.not.undefined)
+          .then(() => done())
+          .catch(done);
+      });
+      it('should merge user supplied headers', (done) => {
+        start()
+          .then(() => app.emit('test', 'data', { headers: { test: 'header' } }))
+          .then(() => expect(channel.publish.args[0][3].headers.test).to.equal('header'))
+          .then(() => done())
+          .catch(done);
+      });
+      it('should apply content-type header based on the buffer', (done) => {
+        start()
+          .then(() => app.emit('test', 'data', { }))
+          .then(() => expect(channel.publish.args[0][3].headers.contentType).to.equal('string'))
+          .then(() => done())
+          .catch(done);
+      });
+    });
   });
 
 });
