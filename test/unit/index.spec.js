@@ -60,6 +60,26 @@ describe('Goodly factory', () => {
           })
           .catch(done);
       });
+      it('should rethrow the exception', (done) => {
+        stubStart.throws('Boom');
+        stubStop.returns(Promise.resolve());
+        factory({ name: 'test', brokerPath: 'broker' })
+          .catch((ex) => {
+            expect(ex.name).to.equal('Boom');
+            done();
+          })
+          .catch(done);
+      });
+      it('should rethrow the exception if stop fails', (done) => {
+        stubStart.throws('Boom');
+        stubStop.returns(Promise.reject('Double boom'));
+        factory({ name: 'test', brokerPath: 'broker' })
+          .catch((ex) => {
+            expect(ex.name).to.equal('Boom');
+            done();
+          })
+          .catch(done);
+      });
     });
 
   });

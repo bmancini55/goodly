@@ -4,7 +4,7 @@ class Layer {
 
   constructor(path, fn) {
     this.path   = path;
-    this.handle = fn;
+    this.fn     = fn;
     this.name   = fn.name || '<anonymous>';
 
     this.regexp = new RegExp('^' + path + '$', 'i');
@@ -32,7 +32,7 @@ class Layer {
   }
 
   async handle(event, next) {
-    await this.handle(event, next);
+    await this.fn(event, next);
   }
 }
 

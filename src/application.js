@@ -59,7 +59,7 @@ class Application {
     await channel.prefetch(concurrent);
 
     // start consuming service channel
-    await channel.consume(this.name, (msg) => this._onMsg(msg).catch(e => console.log(e.stack)));
+    await channel.consume(this.name, (msg) => this._onMsg(msg));
 
     // start consuming reply channel
     await this._consumeReplyQueue();

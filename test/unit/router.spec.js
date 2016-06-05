@@ -19,7 +19,7 @@ describe('Router', () => {
         let layer = router.stack[0];
         expect(layer.path).to.equal('');
         expect(layer.regexp.matchAll).to.be.true;
-        expect(layer.handle).to.equal(func);
+        expect(layer.fn).to.equal(func);
       });
     });
     describe('when path', () => {
@@ -29,7 +29,7 @@ describe('Router', () => {
         let layer = router.stack[0];
         expect(layer.path).to.equal('path');
         expect(layer.regexp.matchAll).to.be.undefined;
-        expect(layer.handle).to.equal(func);
+        expect(layer.fn).to.equal(func);
       });
     });
   });

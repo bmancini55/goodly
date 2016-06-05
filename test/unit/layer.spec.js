@@ -14,7 +14,7 @@ describe('Layer', () => {
     it('should use the second argument as the handler', () => {
       let func  = () => { };
       let layer = new Layer('path', func);
-      expect(layer.handle).to.equal(func);
+      expect(layer.fn).to.equal(func);
     });
     describe('when layer regex is constructred', () => {
       it('should allow an exact match of the path', () => {
@@ -75,20 +75,26 @@ describe('Layer', () => {
       handler = sinon.stub().returns(Promise.resolve());
       layer = new Layer('path', handler);
     });
-    it('should call the handler function', async (done) => {
-      await layer.handle('event', 'next');
-      expect(handler.called).to.be.true;
-      done();
+    it('should call the handler function', (done) => {
+      layer
+        .handle('event', 'next')
+        .then(() => expect(handler.called).to.be.true)
+        .then(() => done())
+        .catch(done);
     });
-    it('should pass the event as the first argument', async (done) => {
-      await layer.handle('event', 'next');
-      expect(handler.args[0][0]).to.equal('event');
-      done();
+    it('should pass the event as the first argument', (done) => {
+      layer
+        .handle('event', 'next')
+        .then(() => expect(handler.args[0][0]).to.equal('event'))
+        .then(() => done())
+        .catch(done);
     });
-    it('should pass the next function as the second argument', async (done) => {
-      await layer.handle('event', 'next');
-      expect(handler.args[0][1]).to.equal('next');
-      done();
+    it('should pass the next function as the second argument', (done) => {
+      layer
+        .handle('event', 'next')
+        .then(() => expect(handler.args[0][1]).to.equal('next'))
+        .then(() => done())
+        .catch(done);
     });
   });
 

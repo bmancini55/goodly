@@ -19,12 +19,6 @@ module.exports = function goodly({ name, brokerPath, transport, cache }, callbac
   if(!brokerPath)
     return service;
 
-  if(transport)
-    wait.push(service.set('transport', transport));
-
-  if(cache)
-    wait.push(service.set('cache', cache));
-
   return Promise
     .all(wait)
     .then(() => callback && callback(service))
@@ -33,8 +27,8 @@ module.exports = function goodly({ name, brokerPath, transport, cache }, callbac
     .catch(e => {
       return service
         .stop()
-        .then(() => console.log(e.stack))
-        .catch(() => console.log(e.stack));
+        .then(() => { throw e; })
+        .catch(() => { throw e; });
     });
 };
 

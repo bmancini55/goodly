@@ -208,4 +208,22 @@ describe('Application', () => {
     });
   });
 
+  describe('.channel', () => {
+    describe('when connected', () => {
+      it('should return the channel', (done) => {
+        app
+          .start({ brokerPath: 'broker' })
+          .then(() => app.channel())
+          .then((channel) => expect(channel).to.not.be.undefined)
+          .then(() => done())
+          .catch(done);
+      });
+    });
+    describe('when not connected', () => {
+      it('should throw an exception', () => {
+        expect(() => app.channel()).to.throw('Execute start before attempting to use framework');
+      });
+    });
+  });
+
 });
