@@ -10,6 +10,11 @@ describe('Application', () => {
   let broker;
   let channel;
 
+  const start = async () => {
+    await app.start({ brokerPath: 'broker' });
+    return app;
+  };
+
   beforeEach(() => {
     app = new Application({ name: 'test' });
   });
@@ -127,11 +132,25 @@ describe('Application', () => {
     });
   });
 
+  describe('.channel', () => {
+    describe('when connected', () => {
+      it('should return the channel', (done) => {
+        app
+          .start({ brokerPath: 'broker' })
+          .then(() => app.channel())
+          .then((channel) => expect(channel).to.not.be.undefined)
+          .then(() => done())
+          .catch(done);
+      });
+    });
+    describe('when not connected', () => {
+      it('should throw an exception', () => {
+        expect(() => app.channel()).to.throw('Execute start before attempting to use framework');
+      });
+    });
+  });
+
   describe('.emit', () => {
-    const start = async () => {
-      await app.start({ brokerPath: 'broker' });
-      return app;
-    };
     describe('when sending to a queue directly', () => {
       it('should call sendToQueue', (done) => {
         start()
@@ -208,20 +227,52 @@ describe('Application', () => {
     });
   });
 
-  describe('.channel', () => {
-    describe('when connected', () => {
-      it('should return the channel', (done) => {
+  describe('.on', () => {
+    describe('when not connected to broker', () => {
+      it('should add to deferred bindings', (done) => {
         app
-          .start({ brokerPath: 'broker' })
-          .then(() => app.channel())
-          .then((channel) => expect(channel).to.not.be.undefined)
+          .on('path', 'func')
+          .then(() => expect(app._deferredBindings[0]).to.deep.equal(['path', 'func']))
           .then(() => done())
           .catch(done);
       });
     });
-    describe('when not connected', () => {
-      it('should throw an exception', () => {
-        expect(() => app.channel()).to.throw('Execute start before attempting to use framework');
+    describe('when connected to broker', () => {
+      it('should add listener to the router', (done) => {
+        start()
+          .then(() => app.on('path', function func() { }))
+          .then(() => expect(app._router.stack[0].path).to.equal('path'))
+          .then(() => done())
+          .catch(done);
+      });
+      it('should bind the queue', (done) => {
+        start()
+          .then(() => app.on('path', function func() { }))
+          .then(() => expect(channel.bindQueue.args[0]).to.deep.equal(['test', 'test', 'path']))
+          .then(() => done())
+          .catch(done);
+      });
+    });
+    describe('when called multiple times', () => {
+      it('should add listener to the router', (done) => {
+        start()
+          .then(() => app.on('path', function one() { }))
+          .then(() => app.on('path', function two() { }))
+          .then(() => {
+            expect(app._router.stack.length).to.equal(2);
+            expect(app._router.stack[0].name).to.equal('one');
+            expect(app._router.stack[1].name).to.equal('two');
+          })
+          .then(() => done())
+          .catch(done);
+      });
+      it('should only bind to the queue once', (done) => {
+        start()
+          .then(() => app.on('path', function one() { }))
+          .then(() => app.on('path', function two() { }))
+          .then(() => expect(channel.bindQueue.callCount).to.equal(1))
+          .then(() => done())
+          .catch(done);
       });
     });
   });
