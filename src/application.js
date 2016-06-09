@@ -59,7 +59,7 @@ class Application {
     await channel.prefetch(concurrent);
 
     // start consuming service channel
-    await channel.consume(this.name, (msg) => this._onMsg(msg));
+    await this._consumeServiceQueue();
 
     // start consuming reply channel
     await this._consumeReplyQueue();
@@ -144,38 +144,6 @@ class Application {
   }
 
   /**
-   * @private
-   * @param  {[type]} msg        [description]
-   * @return {[type]}            [description]
-   */
-  async _onMsg(msg) {
-    let correlationId = msg.properties.correlationId;
-    let contentType   = msg.properties.headers.contentType;
-    let path          = msg.fields.routingKey;
-    let channel       = this.channel();
-    let router        = this._router;
-    let buffer        = msg.content;
-    debug(this.name + ' on %s %s', path, correlationId);
-
-    // convert from buffer into
-    let data = convertFromBuffer(contentType, buffer);
-
-    // construct event object
-    let event = new Event({ service: this, msg: msg, data: data });
-
-    // processing message
-    let result = await router.handle(path, event);
-
-    // perform replyTo by directly emitting into the reply to queue
-    if(msg.properties.replyTo)
-      await this.emit(path, result, { correlationId }, msg.properties.replyTo);
-
-    // ack the message so that prefetch works
-    await channel.ack(msg);
-  }
-
-
-  /**
    * Performs a request in a request/response interaction. Similar
    * to the broadcast message.
    * @param  {[type]} path                  [description]
@@ -190,11 +158,48 @@ class Application {
 
     // publish the event and include the correlationId and the replyTo queue
     return new Promise((resolve) => {
-      this._requests[correlationId] = (msg) => resolve(msg);
+      this._requests[correlationId] = (receivedData) => resolve(receivedData);
       this.emit(path, data, { correlationId, replyTo });
     });
 
   }
+
+
+  /**
+   * Consume the service queue
+   * @return {[type]} [description]
+   */
+  async _consumeServiceQueue() {
+    const channel = this.channel();
+    const handler = async (msg) => {
+      let correlationId = msg.properties.correlationId;
+      let contentType   = msg.properties.headers.contentType;
+      let path          = msg.fields.routingKey;
+      let router        = this._router;
+      let buffer        = msg.content;
+      debug(this.name + ' on %s %s', path, correlationId);
+
+      // convert from buffer into
+      let data = convertFromBuffer(contentType, buffer);
+
+      // construct event object
+      let event = new Event({ service: this, msg: msg, data: data });
+
+      // processing message
+      let result = await router.handle(path, event);
+
+      // perform replyTo by directly emitting into the reply to queue
+      if(msg.properties.replyTo)
+        await this.emit(path, result, { correlationId }, msg.properties.replyTo);
+
+      // ack the message so that prefetch works
+      await channel.ack(msg);
+    };
+
+    // start consuming the queue
+    channel.consume(this.name, handler);
+  }
+
 
   /**
    * Consumes the reply queue
@@ -213,6 +218,8 @@ class Application {
         this._requests[correlationId](data);
       }
     };
+
+    // start consuming the queue
     channel.consume(this.replyTo, handler, { noAck: true });
   }
 }
