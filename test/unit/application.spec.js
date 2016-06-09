@@ -277,4 +277,28 @@ describe('Application', () => {
     });
   });
 
+  describe('.request', () => {
+    it('should return the response value when completed', (done) => {
+      start()
+        .then(() => {
+          process.nextTick(() => app._requests['1']('response_data'));
+          return app.request('path', 'request_data', { correlationId: '1' });
+        })
+        .then((response) => expect(response).to.equal('response_data'))
+        .then(() => done())
+        .catch(done);
+    });
+    it('should emit an event with the exclusive queue', (done) => {
+      sinon.stub(app, 'emit');
+      start()
+        .then(() => {
+          process.nextTick(() => app._requests['1']('response_data'));
+          return app.request('path', 'request_data', { correlationId: '1' });
+        })
+        .then(() => expect(app.emit.args[0]).to.deep.equal(['path', 'request_data', { correlationId: '1', replyTo: 'exclusive-queue' }]))
+        .then(() => done())
+        .catch(done);
+    });
+  });
+
 });
