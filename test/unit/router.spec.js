@@ -32,6 +32,18 @@ describe('Router', () => {
         expect(layer.fn).to.equal(func);
       });
     });
+    describe('when multiple fns', () => {
+      it('should add each functions in order', () =>{
+        let func1 = () => {};
+        let func2 = () => {};
+        router.add('path', func1, func2);
+        expect(router.stack.length).to.equal(2);
+        expect(router.stack[0].path).to.equal('path');
+        expect(router.stack[0].name).to.equal('func1');
+        expect(router.stack[1].path).to.equal('path');
+        expect(router.stack[1].name).to.equal('func2');
+      });
+    });
   });
 
   describe('.handle', () => {

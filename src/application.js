@@ -20,9 +20,8 @@ class Application {
     this.appExchange = appExchange;
     this._broker;
     this._channel;
-    this._router = new Router();
+    this._inRouter = new Router();
     this._requests = [];
-    this._settings = {};
     this._bindings = {};
     this._deferredBindings = [];
     debug(this.name + ' created');
@@ -119,20 +118,20 @@ class Application {
    * Binds the method to the event for listening
    * @private
    */
-  async on(path, fn) {
+  async on(path, ...fns) {
     const channel  = this._channel;
-    const router   = this._router;
+    const router   = this._inRouter;
     const exchange = this.name;
     const queue    = this.name;
 
     // if not yet connected to the broker we need to defer
     if(!channel) {
-      this._deferredBindings.push([path, fn]);
+      this._deferredBindings.push([path, ...fns]);
       return;
     }
 
     // attach handler to the router
-    router.add(path, fn);
+    router.add(path, ...fns);
 
     // bind the queue if we haven't already
     if(!this._bindings[path]) {
@@ -175,7 +174,7 @@ class Application {
       let correlationId = msg.properties.correlationId;
       let contentType   = msg.properties.headers.contentType;
       let path          = msg.fields.routingKey;
-      let router        = this._router;
+      let router        = this._inRouter;
       let buffer        = msg.content;
       debug(this.name + ' on %s %s', path, correlationId);
 

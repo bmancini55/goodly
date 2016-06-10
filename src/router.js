@@ -4,15 +4,19 @@ import Layer from './layer';
 class Router {
   stack = []
 
-  add(path, fn) {
+  add(path, ...fns) {
     let layer;
 
-    if(typeof(path) === 'function')
+    if(typeof(path) === 'function') {
       layer = new Layer('', path);
-    else
-      layer = new Layer(path, fn);
-
-    this.stack.push(layer);
+      this.stack.push(layer);
+    }
+    else {
+      for(let fn of fns) {
+        layer = new Layer(path, fn);
+        this.stack.push(layer);
+      }
+    }
   }
 
   async handle(path, event) {

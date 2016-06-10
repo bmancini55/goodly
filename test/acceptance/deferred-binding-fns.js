@@ -1,6 +1,6 @@
 /**
- * Integration test for validating emit + listen works
- * as expected for a simple use case.
+ * Integration test for validating deferred listening
+ * works with simple emit + listen
  */
 
 const chai   = require('chai');
@@ -9,7 +9,7 @@ const expect = chai.expect;
 const goodly   = require('../../src');
 const RABBITMQ = process.env.RABBITMQ || '192.168.99.100';
 
-describe('Acceptance: deferred listeners', () => {
+describe('Acceptance: deferred listener with multi function', () => {
   let service1;
   let service2;
 
@@ -25,15 +25,26 @@ describe('Acceptance: deferred listeners', () => {
 
   it('should listen to emitted events', async (done) => {
 
-    await service2.on('message', async ({ data }) => {
-      expect(data).to.equal('hello world');
-    });
+    await service2.on('message',
+      async (event, next) => {
+        await next();
+        try {
+          expect(event.data).to.equal('hello world!');
+          done();
+        }
+        catch(ex) {
+          done(ex);
+        }
+      },
+      async (event) => {
+        event.data += '!';
+      }
+    );
 
     await service1.start({ brokerPath: RABBITMQ });
     await service2.start({ brokerPath: RABBITMQ });
 
     await service1.emit('message', 'hello world');
-    done();
   });
 
 });

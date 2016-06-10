@@ -229,28 +229,60 @@ describe('Application', () => {
 
   describe('.on', () => {
     describe('when not connected to broker', () => {
-      it('should add to deferred bindings', (done) => {
-        app
-          .on('path', 'func')
-          .then(() => expect(app._deferredBindings[0]).to.deep.equal(['path', 'func']))
-          .then(() => done())
-          .catch(done);
+      describe('with single fn', () => {
+        it('should add to deferred bindings', (done) => {
+          app
+            .on('path', 'func')
+            .then(() => expect(app._deferredBindings[0]).to.deep.equal(['path', 'func']))
+            .then(() => done())
+            .catch(done);
+        });
+      });
+      describe('with multiple fns', () => {
+        it('should add all fns to deferred bindings', (done) => {
+          app
+            .on('path', 'fn1', 'fn2')
+            .then(() => expect(app._deferredBindings[0]).to.deep.equal(['path', 'fn1', 'fn2']))
+            .then(() => done())
+            .catch(done);
+        });
       });
     });
     describe('when connected to broker', () => {
-      it('should add listener to the router', (done) => {
-        start()
-          .then(() => app.on('path', function func() { }))
-          .then(() => expect(app._router.stack[0].path).to.equal('path'))
-          .then(() => done())
-          .catch(done);
+      describe('with single fn', () => {
+        it('should add listener to the router', (done) => {
+          start()
+            .then(() => app.on('path', function func() { }))
+            .then(() => expect(app._inRouter.stack[0].path).to.equal('path'))
+            .then(() => done())
+            .catch(done);
+        });
+        it('should bind the queue', (done) => {
+          start()
+            .then(() => app.on('path', function func() { }))
+            .then(() => expect(channel.bindQueue.args[0]).to.deep.equal(['test', 'test', 'path']))
+            .then(() => done())
+            .catch(done);
+        });
       });
-      it('should bind the queue', (done) => {
-        start()
-          .then(() => app.on('path', function func() { }))
-          .then(() => expect(channel.bindQueue.args[0]).to.deep.equal(['test', 'test', 'path']))
-          .then(() => done())
-          .catch(done);
+      describe('with multple fns', () => {
+        it('should add listeners to the router', (done) => {
+          start()
+            .then(() => app.on('path', function fn1() { }, function fn2() { }))
+            .then(() => expect(app._inRouter.stack[0].path).to.equal('path'))
+            .then(() => expect(app._inRouter.stack[0].name).to.equal('fn1'))
+            .then(() => expect(app._inRouter.stack[1].path).to.equal('path'))
+            .then(() => expect(app._inRouter.stack[1].name).to.equal('fn2'))
+            .then(() => done())
+            .catch(done);
+        });
+        it('should bind the queue', (done) => {
+          start()
+            .then(() => app.on('path', function fn1() { }, function fn2() { }))
+            .then(() => expect(channel.bindQueue.args[0]).to.deep.equal(['test', 'test', 'path']))
+            .then(() => done())
+            .catch(done);
+        });
       });
     });
     describe('when called multiple times', () => {
@@ -259,9 +291,9 @@ describe('Application', () => {
           .then(() => app.on('path', function one() { }))
           .then(() => app.on('path', function two() { }))
           .then(() => {
-            expect(app._router.stack.length).to.equal(2);
-            expect(app._router.stack[0].name).to.equal('one');
-            expect(app._router.stack[1].name).to.equal('two');
+            expect(app._inRouter.stack.length).to.equal(2);
+            expect(app._inRouter.stack[0].name).to.equal('one');
+            expect(app._inRouter.stack[1].name).to.equal('two');
           })
           .then(() => done())
           .catch(done);
