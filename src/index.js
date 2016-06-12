@@ -12,17 +12,17 @@ const Application = require('./application');
  * @param  {Function} callback           [description]
  * @return {[type]}                      [description]
  */
-module.exports = function goodly({ name, brokerPath, transport, cache }, callback) {
-  let service = new Application({ name });
+module.exports = function goodly(options, callback) {
+  let service = new Application(options);
   let wait = [];
 
-  if(!brokerPath)
+  if(!options.brokerPath)
     return service;
 
   return Promise
     .all(wait)
     .then(() => callback && callback(service))
-    .then(() => service.start({ brokerPath }))
+    .then(() => service.start(options))
     .then(() => service)
     .catch(e => {
       return service
