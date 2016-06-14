@@ -9,13 +9,13 @@ const expect = chai.expect;
 const goodly   = require('../../src');
 const RABBITMQ = process.env.RABBITMQ || '192.168.99.100';
 
-describe('Acceptance: emit middleware', () => {
+describe('Acceptance: deferred emit middleware', () => {
   let service1;
   let service2;
 
   before(async () => {
-    service1 = await goodly({ name: 'test1', brokerPath: RABBITMQ });
-    service2 = await goodly({ name: 'test2', brokerPath: RABBITMQ });
+    service1 = await goodly({ name: 'test1' });
+    service2 = await goodly({ name: 'test2' });
   });
 
   after(async () => {
@@ -23,13 +23,19 @@ describe('Acceptance: emit middleware', () => {
     await service2.stop();
   });
 
-  it('should allow emit middleware to mutate the outbound event', async (done) => {
+  it('should allow deferred emit middleware', async (done) => {
     try {
 
+      // add emit middleware before connection
       await service1.onEmit('message', (event) => {
         event.data = 'hello ' + event.data;
       });
 
+      // start the services
+      await service1.start({ brokerPath: RABBITMQ });
+      await service2.start({ brokerPath: RABBITMQ });
+
+      // attach a handler
       await service2.on('message', async ({ data }) => {
         try {
           expect(data).to.equal('hello world');
@@ -40,6 +46,7 @@ describe('Acceptance: emit middleware', () => {
         }
       });
 
+      // emit a message to
       await service1.emit('message', 'world');
     }
     catch(ex) {

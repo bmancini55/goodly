@@ -50,13 +50,15 @@ class Application {
     // setup exclusive queue for requestion/response
     this.replyTo = (await channel.assertQueue('', { exclusive: true })).queue;
 
-    // attach deferred listeners
-    for(let binding of this._deferredBindings) {
-      await this.on.apply(this, binding);
-    }
-
     // create middleware
     await this._createDefaultMiddleware();
+
+    // attach deferred listeners
+    let binding;
+    while((binding = this._deferredBindings.shift())) {
+      let method = binding.shift();
+      await this[method].apply(this, binding);
+    }
 
     // configure prefetch for the channel
     await channel.prefetch(concurrent);
@@ -142,7 +144,7 @@ class Application {
 
     // if not yet connected to the broker we need to defer
     if(!channel) {
-      this._deferredBindings.push([path, ...fns]);
+      this._deferredBindings.push(['on', path, ...fns]);
       return;
     }
 
@@ -170,13 +172,14 @@ class Application {
 
     // if not yet connected to the broker we will defer
     if(!channel) {
-      this._deferredBindings.push(['out', path, ...fns]);
+      this._deferredBindings.push(['onEmit', path, ...fns]);
+      return;
     }
 
     // attach handler to the router
     router.add(path, ...fns);
 
-    debug(this.name + ' added middleware for ' + path);
+    debug(this.name + ' added emit middleware for ' + path);
   }
 
   /**
@@ -259,6 +262,10 @@ class Application {
     channel.consume(this.replyTo, handler, { noAck: true });
   }
 
+  /**
+   * Attaches default middleware
+   * @return {[type]} [description]
+   */
   async _createDefaultMiddleware() {
     this._outRouter.add((options, next) => {
       options.correlationId = options.correlationId || uuid.v4();

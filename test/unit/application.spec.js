@@ -227,13 +227,14 @@ describe('Application', () => {
     });
   });
 
+
   describe('.on', () => {
     describe('when not connected to broker', () => {
       describe('with single fn', () => {
         it('should add to deferred bindings', (done) => {
           app
             .on('path', 'func')
-            .then(() => expect(app._deferredBindings[0]).to.deep.equal(['path', 'func']))
+            .then(() => expect(app._deferredBindings[0]).to.deep.equal(['on', 'path', 'func']))
             .then(() => done())
             .catch(done);
         });
@@ -242,7 +243,7 @@ describe('Application', () => {
         it('should add all fns to deferred bindings', (done) => {
           app
             .on('path', 'fn1', 'fn2')
-            .then(() => expect(app._deferredBindings[0]).to.deep.equal(['path', 'fn1', 'fn2']))
+            .then(() => expect(app._deferredBindings[0]).to.deep.equal(['on', 'path', 'fn1', 'fn2']))
             .then(() => done())
             .catch(done);
         });
@@ -305,6 +306,52 @@ describe('Application', () => {
           .then(() => expect(channel.bindQueue.callCount).to.equal(1))
           .then(() => done())
           .catch(done);
+      });
+    });
+  });
+
+  describe('.onEmit', () => {
+    describe('when not connected to broker', () => {
+      describe('with single fn', () => {
+        it('should add to deferred bindings', (done) => {
+          app
+            .onEmit('path', 'func')
+            .then(() => expect(app._deferredBindings[0]).to.deep.equal(['onEmit', 'path', 'func']))
+            .then(() => done())
+            .catch(done);
+        });
+      });
+      describe('with multiple fns', () => {
+        it('should add all fns to deferred bindings', (done) => {
+          app
+            .onEmit('path', 'fn1', 'fn2')
+            .then(() => expect(app._deferredBindings[0]).to.deep.equal(['onEmit', 'path', 'fn1', 'fn2']))
+            .then(() => done())
+            .catch(done);
+        });
+      });
+    });
+    describe('when connected to broker', () => {
+      describe('with single fn', () => {
+        it('should add listener to the router', (done) => {
+          start()
+            .then(() => app.onEmit('path', function func() { }))
+            .then(() => expect(app._outRouter.stack[1].path).to.equal('path'))
+            .then(() => done())
+            .catch(done);
+        });
+      });
+      describe('with multple fns', () => {
+        it('should add listeners to the router', (done) => {
+          start()
+            .then(() => app.onEmit('path', function fn1() { }, function fn2() { }))
+            .then(() => expect(app._outRouter.stack[1].path).to.equal('path'))
+            .then(() => expect(app._outRouter.stack[1].name).to.equal('fn1'))
+            .then(() => expect(app._outRouter.stack[2].path).to.equal('path'))
+            .then(() => expect(app._outRouter.stack[2].name).to.equal('fn2'))
+            .then(() => done())
+            .catch(done);
+        });
       });
     });
   });
