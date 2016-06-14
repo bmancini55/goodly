@@ -154,35 +154,35 @@ describe('Application', () => {
     describe('when sending to a queue directly', () => {
       it('should call sendToQueue', (done) => {
         start()
-          .then(() => app.emit('test', 'data', { }, 'direct-queue'))
+          .then(() => app.emit('test', 'data', { sendToQueue: 'direct-queue' }))
           .then(() => expect(channel.sendToQueue.withArgs('direct-queue').called).to.be.true)
           .then(() => done())
           .catch(done);
       });
       it('should convert the data to a buffer', (done) => {
         start()
-          .then(() => app.emit('test', 'data', { }, 'direct-queue'))
+          .then(() => app.emit('test', 'data', { sendToQueue: 'direct-queue' }))
           .then(() => expect(channel.sendToQueue.args[0][1]).to.deep.equal(Buffer.from('data')))
           .then(() => done())
           .catch(done);
       });
       it('should include the correlationId', (done) => {
         start()
-          .then(() => app.emit('test', 'data', { }, 'direct-queue'))
+          .then(() => app.emit('test', 'data', { sendToQueue: 'direct-queue' }))
           .then(() => expect(channel.sendToQueue.args[0][2].correlationId).is.not.undefined)
           .then(() => done())
           .catch(done);
       });
       it('should merge user supplied headers', (done) => {
         start()
-          .then(() => app.emit('test', 'data', { headers: { test: 'header' } }, 'direct-queue'))
+          .then(() => app.emit('test', 'data', { headers: { test: 'header' }, sendToQueue: 'direct-queue' }))
           .then(() => expect(channel.sendToQueue.args[0][2].headers.test).to.equal('header'))
           .then(() => done())
           .catch(done);
       });
       it('should apply content-type header based on the buffer', (done) => {
         start()
-          .then(() => app.emit('test', 'data', { }, 'direct-queue'))
+          .then(() => app.emit('test', 'data', { sendToQueue: 'direct-queue' }))
           .then(() => expect(channel.sendToQueue.args[0][2].headers.contentType).to.equal('string'))
           .then(() => done())
           .catch(done);

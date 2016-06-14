@@ -1,6 +1,5 @@
 /**
- * Integration test to ensure that request/response
- * functionality has not regressed
+ * Emit middleware testing
  */
 
 const chai   = require('chai');
@@ -9,7 +8,7 @@ const expect = chai.expect;
 const goodly   = require('../../src');
 const RABBITMQ = process.env.RABBITMQ || '192.168.99.100';
 
-describe('Acceptance: request & response', () => {
+describe('Acceptance: emit middleware', () => {
   let service1;
   let service2;
 
@@ -23,15 +22,23 @@ describe('Acceptance: request & response', () => {
     await service2.stop();
   });
 
-  it('should wait for reply', async (done) => {
+  it('should allow multiple middleware functions', async (done) => {
     try {
-      await service2.on('request', async ({ data, reply }) => {
-        await reply(data + ' world');
+      await service2.on('message', async ({ data }) => {
+        try {
+          expect(data).to.equal('hello world');
+          done();
+        }
+        catch(ex) {
+          done(ex);
+        }
       });
 
-      let result = await service1.request('request', 'hello');
-      expect(result).to.equal('hello world');
-      done();
+      await service1.onEmit('message', (event) => {
+        event.data = 'hello ' + event.data;
+      });
+
+      await service1.emit('message', 'world');
     }
     catch(ex) {
       done(ex);
@@ -39,4 +46,5 @@ describe('Acceptance: request & response', () => {
   });
 
 });
+
 

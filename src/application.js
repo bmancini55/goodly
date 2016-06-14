@@ -21,6 +21,7 @@ class Application {
     this._broker;
     this._channel;
     this._inRouter = new Router();
+    this._outRouter = new Router();
     this._requests = [];
     this._bindings = {};
     this._deferredBindings = [];
@@ -53,6 +54,9 @@ class Application {
     for(let binding of this._deferredBindings) {
       await this.on.apply(this, binding);
     }
+
+    // create middleware
+    await this._createDefaultMiddleware();
 
     // configure prefetch for the channel
     await channel.prefetch(concurrent);
@@ -93,14 +97,26 @@ class Application {
    * @param  {Object} options.headers:      inputHeaders  [description]
    * @return {[type]}                       [description]
    */
-  async emit(path, data = '', { correlationId = uuid.v4(), replyTo, headers: inputHeaders = {} } = {}, sendToQueue) {
+  async emit(path, data, options) {
     const channel = this.channel();
 
-    // create the buffer and modify the headers
-    let { buffer, contentType } = convertToBuffer(data);
+    // rewrite options to include data
+    let event = { data, ...options };
 
-    // construct the headers
-    let headers = Object.assign({}, { contentType }, inputHeaders);
+    // generate options through middleware
+    await this._outRouter.handle(path, event);
+
+    // parse results from options after middleware
+    let {
+      correlationId,
+      replyTo,
+      headers,
+      sendToQueue
+    } = { ...event };
+
+    // create the buffer and modify the headers
+    let { buffer, contentType } = convertToBuffer(event.data);
+    headers.contentType         = contentType;
 
     // publish into the channel
     if(sendToQueue) {
@@ -140,6 +156,27 @@ class Application {
     }
 
     debug(this.name + ' listens to %s', path);
+  }
+
+  /**
+   * Add middleware for
+   * @param  {[type]}    path [description]
+   * @param  {...[type]} fns  [description]
+   * @return {[type]}         [description]
+   */
+  async onEmit(path, ...fns) {
+    const channel = this._channel;
+    const router  = this._outRouter;
+
+    // if not yet connected to the broker we will defer
+    if(!channel) {
+      this._deferredBindings.push(['out', path, ...fns]);
+    }
+
+    // attach handler to the router
+    router.add(path, ...fns);
+
+    debug(this.name + ' added middleware for ' + path);
   }
 
   /**
@@ -189,7 +226,7 @@ class Application {
 
       // perform replyTo by directly emitting into the reply to queue
       if(msg.properties.replyTo)
-        await this.emit(path, result, { correlationId }, msg.properties.replyTo);
+        await this.emit(path, result, { correlationId, sendToQueue: msg.properties.replyTo });
 
       // ack the message so that prefetch works
       await channel.ack(msg);
@@ -220,6 +257,15 @@ class Application {
 
     // start consuming the queue
     channel.consume(this.replyTo, handler, { noAck: true });
+  }
+
+  async _createDefaultMiddleware() {
+    this._outRouter.add((options, next) => {
+      options.correlationId = options.correlationId || uuid.v4();
+      options.headers       = options.headers || {};
+      debug(this.name + 'applied default out middleware');
+      next();
+    });
   }
 }
 
