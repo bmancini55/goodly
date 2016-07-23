@@ -1,5 +1,5 @@
 
-import amqp from 'amqplib';
+import amqplib from 'amqplib';
 import uuid from 'node-uuid';
 import Debug from 'debug';
 import Router from './router';
@@ -34,7 +34,7 @@ class Application {
    * @param  {[type]} brokerPath [description]
    * @return {[type]}            [description]
    */
-  async start({ brokerPath, concurrent = 5 }) {
+  async start({ brokerPath, concurrent = 5, amqp = amqplib }) {
     this._broker = await amqp.connect('amqp://' + brokerPath);
     this._channel = await this._broker.createChannel();
     debug(this.name + ' connected to RabbitMQ %s', brokerPath);
@@ -270,7 +270,7 @@ class Application {
     this._outRouter.add((options, next) => {
       options.correlationId = options.correlationId || uuid.v4();
       options.headers       = options.headers || {};
-      debug(this.name + 'applied default out middleware');
+      debug(this.name + ' applied default out middleware');
       next();
     });
   }

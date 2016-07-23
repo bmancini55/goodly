@@ -1,5 +1,4 @@
 
-let amqp = require('amqplib');
 let sinon = require('sinon');
 let chai = require('chai');
 let expect = chai.expect;
@@ -7,16 +6,18 @@ let Application = require('../../src/application');
 
 describe('Application', () => {
   let app;
+  let amqp;
   let broker;
   let channel;
 
-  const start = async () => {
-    await app.start({ brokerPath: 'broker' });
-    return app;
-  };
-
   beforeEach(() => {
     app = new Application({ name: 'test' });
+  });
+
+  beforeEach(() => {
+    amqp = {
+      connect: () => broker
+    };
   });
 
   beforeEach(() => {
@@ -44,75 +45,64 @@ describe('Application', () => {
     channel.assertQueue.withArgs('', { exclusive: true }).returns({ queue: 'exclusive-queue' });
   });
 
-  beforeEach(() => {
-    // stub connect so that it returns our fake broker
-    sinon.stub(amqp, 'connect').returns(broker);
-  });
 
-  afterEach(() => {
-    amqp.connect.restore();
-  });
+  const start = async () => {
+    await app.start({ brokerPath: 'broker', amqp });
+    return app;
+  };
+
 
   describe('.start', () => {
     it('should assert the application exchange', (done) => {
-      app
-        .start({ brokerPath: 'broker' })
+      start()
         .then(() => expect(channel.assertExchange.withArgs('app').called).to.be.true)
         .then(() => done())
         .catch(done);
     });
     it('should assert the service exchange', (done) => {
-      app
-        .start({ brokerPath: 'broker' })
+      start()
         .then(() => expect(channel.assertExchange.withArgs('test').called).to.be.true)
         .then(() => done())
         .catch(done);
     });
     it('should bind the service exchange to the application exchange', (done) => {
-      app
-        .start({ brokerPath: 'broker' })
+      start()
         .then(() => expect(channel.bindExchange.withArgs('test', 'app').called).to.be.true)
         .then(() => done())
         .catch(done);
     });
     it('should assert the service queue', (done) => {
-      app
-        .start({ brokerPath: 'broker' })
+      start()
         .then(() => expect(channel.assertQueue.withArgs('test').called).to.be.true)
         .then(() => done())
         .catch(done);
     });
     it('should add a 1 hour TTL for the service queue', (done) => {
-      app
-        .start({ brokerPath: 'broker' })
+      start()
         .then(() => expect(channel.assertQueue.withArgs('test', { expires: 3600000 }).called).to.be.true)
         .then(() => done())
         .catch(done);
     });
     it('should generate the exclusive queue', (done) => {
-      app
-        .start({ brokerPath: 'broker' })
+      start()
         .then(() => expect(channel.assertQueue.withArgs('', { exclusive: true }).called).to.be.true)
         .then(() => done())
         .catch(done);
     });
     it('should set prefetch for the channel', (done) => {
-      app
-        .start({ brokerPath: 'broker' })
+      start()
         .then(() => expect(channel.prefetch.withArgs(5).called).to.be.true)
         .then(() => done())
         .catch(done);
     });
     it('should start consuming on the service queue', (done) => {
-      app
-        .start({ brokerPath: 'broker' })
+      start()
         .then(() => expect(channel.consume.withArgs('test').called).to.be.true)
         .then(() => done())
         .catch(done);
     });
     it('should start consuming on the exclusive queue', (done) => {
-      app
-        .start({ brokerPath: 'broker' })
+      start()
         .then(() => expect(channel.consume.withArgs('exclusive-queue').called).to.be.true)
         .then(() => done())
         .catch(done);
@@ -122,8 +112,7 @@ describe('Application', () => {
   describe('.stop', () => {
     describe('when broker is connected', () => {
       it('should close the broker', (done) => {
-        app
-          .start({ brokerPath: 'broker' })
+        start()
           .then(() => app.stop())
           .then(() => expect(broker.close.called).to.be.true)
           .then(() => done())
@@ -135,8 +124,7 @@ describe('Application', () => {
   describe('.channel', () => {
     describe('when connected', () => {
       it('should return the channel', (done) => {
-        app
-          .start({ brokerPath: 'broker' })
+        start()
           .then(() => app.channel())
           .then((channel) => expect(channel).to.not.be.undefined)
           .then(() => done())
