@@ -1,6 +1,6 @@
 {
   "name": "goodly",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Microservice framework",
   "author": "Brian <bmancini@gmail.com>",
   "main": "dist/index.js",
