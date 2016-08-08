@@ -107,6 +107,12 @@ describe('Application', () => {
         .then(() => done())
         .catch(done);
     });
+    it('should return the service', (done) => {
+      start()
+        .then((service) => expect(service).to.equal(app))
+        .then(() => done())
+        .catch(done);
+    });
   });
 
   describe('.stop', () => {

@@ -8,6 +8,20 @@ describe('util', () => {
   describe('#convertToBuffer', () => {
     let input;
 
+    describe('when input is undefined', () => {
+      beforeEach(() => {
+        input = undefined;
+      });
+      it('should return an empty buffer', () => {
+        let { buffer: actual } = util.convertToBuffer(input);
+        expect(actual).to.deep.equal(new Buffer(''));
+      });
+      it('should have contentType of undefined', () => {
+        let { contentType: actual } = util.convertToBuffer(input);
+        expect(actual).to.equal('undefined');
+      });
+    });
+
     describe('when input is buffer', () => {
       beforeEach(() => {
         input = new Buffer('hello');

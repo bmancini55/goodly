@@ -6,6 +6,8 @@ module.exports = {
 
 function convertFromBuffer(contentType, buffer) {
   switch(contentType) {
+    case 'undefined':
+      return undefined;
     case 'buffer':
       return buffer;
     case 'object':
@@ -17,7 +19,12 @@ function convertFromBuffer(contentType, buffer) {
 
 function convertToBuffer(data) {
   let contentType, buffer;
-  if(data instanceof Buffer) {
+
+  if(data === undefined) {
+    contentType = 'undefined';
+    buffer = new Buffer('');
+  }
+  else if(data instanceof Buffer) {
     contentType = 'buffer';
     buffer      = data;
   }
