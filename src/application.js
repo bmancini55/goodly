@@ -68,6 +68,9 @@ class Application {
 
     // start consuming reply channel
     await this._consumeReplyQueue();
+
+    // return the service for proper chaining
+    return this;
   }
 
   /**
