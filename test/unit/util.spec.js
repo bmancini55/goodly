@@ -67,6 +67,11 @@ describe('util', () => {
   });
 
   describe('#convertFromBuffer', () => {
+    describe('when contentType is undefined', () => {
+      let input = new Buffer('');
+      let actual = util.convertFromBuffer('undefined', input);
+      expect(actual).to.be.undefined;
+    });
     describe('when contentType is buffer', () => {
       it('should return the buffer', () => {
         let input = new Buffer('test');
