@@ -27,8 +27,14 @@ describe('Acceptance: deferred emit middleware', () => {
     try {
 
       // add emit middleware before connection
-      await service1.onEmit('message', (event) => {
+      await service1.onEmit('message', async (event, next) => {
         event.data = 'hello ' + event.data;
+        await next();
+      });
+
+      await service1.onEmit('message', async (event, next) => {
+        event.data = event.data + '!';
+        await next();
       });
 
       // start the services
@@ -38,7 +44,7 @@ describe('Acceptance: deferred emit middleware', () => {
       // attach a handler
       await service2.on('message', async ({ data }) => {
         try {
-          expect(data).to.equal('hello world');
+          expect(data).to.equal('hello world!');
           done();
         }
         catch(ex) {

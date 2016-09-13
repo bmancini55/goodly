@@ -26,13 +26,19 @@ describe('Acceptance: emit middleware', () => {
   it('should allow emit middleware to mutate the outbound event', async (done) => {
     try {
 
-      await service1.onEmit('message', (event) => {
+      await service1.onEmit('message', async (event, next) => {
         event.data = 'hello ' + event.data;
+        await next();
+      });
+
+      await service1.onEmit('message', async (event, next) => {
+        event.data = event.data + '!';
+        await next();
       });
 
       await service2.on('message', async ({ data }) => {
         try {
-          expect(data).to.equal('hello world');
+          expect(data).to.equal('hello world!');
           done();
         }
         catch(ex) {
