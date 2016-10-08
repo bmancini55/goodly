@@ -21,31 +21,16 @@ class Router {
 
   async handle(path, event) {
     let stack = this.stack;
-    let idx = 0;
 
-    const next = async () => {
-      let layer;
-      let match;
+    // loop through each layer
+    for(let layer of stack) {
 
-      // find next matching layer
-      while (!match && idx < stack.length) {
-        layer = stack[idx];
-        match = layer.match(path);
-        idx += 1;
-
-        if(!match)
-          continue;
+      // handle matches
+      if(layer.match(path)) {
+        await layer.handle(event);
       }
+    }
 
-      // no match found
-      if(!match) {
-        return;
-      }
-
-      // otherwise... process
-      await layer.handle(event, next);
-    };
-    await next();
     return event.response;
   }
 }

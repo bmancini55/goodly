@@ -8,7 +8,7 @@ const chai   = require('chai');
 const expect = chai.expect;
 
 const goodly   = require('../../src');
-const RABBITMQ = process.env.RABBITMQ || '192.168.99.100';
+const RABBITMQ = process.env.RABBITMQ || '127.0.0.1';
 
 describe('Acceptance: listen multi fns', () => {
   let service1;
@@ -33,21 +33,19 @@ describe('Acceptance: listen multi fns', () => {
       'message',
 
       // fn1
-      async (event, next) => {
+      async (event) => {
         hit += 1;
-        await next();
+      },
+
+      // fn2
+      async () => {
+        hit += 1;
         try {
           expect(hit).to.equal(2);
           done();
         } catch (ex) {
           done(ex);
         }
-
-      },
-
-      // fn2
-      async () => {
-        hit += 1;
       }
     );
 

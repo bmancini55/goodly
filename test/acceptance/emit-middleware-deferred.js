@@ -7,7 +7,7 @@ const chai   = require('chai');
 const expect = chai.expect;
 
 const goodly   = require('../../src');
-const RABBITMQ = process.env.RABBITMQ || '192.168.99.100';
+const RABBITMQ = process.env.RABBITMQ || '127.0.0.1';
 
 describe('Acceptance: deferred emit middleware', () => {
   let service1;
@@ -27,14 +27,12 @@ describe('Acceptance: deferred emit middleware', () => {
     try {
 
       // add emit middleware before connection
-      await service1.onEmit('message', async (event, next) => {
+      await service1.onEmit('message', async (event) => {
         event.data = 'hello ' + event.data;
-        await next();
       });
 
-      await service1.onEmit('message', async (event, next) => {
+      await service1.onEmit('message', async (event) => {
         event.data = event.data + '!';
-        await next();
       });
 
       // start the services

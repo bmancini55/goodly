@@ -270,11 +270,10 @@ class Application {
    * @return {[type]} [description]
    */
   async _createDefaultMiddleware() {
-    this._outRouter.add((options, next) => {
+    this._outRouter.add((options) => {
       options.correlationId = options.correlationId || uuid.v4();
       options.headers       = options.headers || {};
       debug(this.name + ' applied default out middleware');
-      next();
     });
   }
 }

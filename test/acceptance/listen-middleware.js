@@ -7,7 +7,7 @@ const chai   = require('chai');
 const expect = chai.expect;
 
 const goodly   = require('../../src');
-const RABBITMQ = process.env.RABBITMQ || '192.168.99.100';
+const RABBITMQ = process.env.RABBITMQ || '127.0.0.1';
 
 describe('Acceptance: listen middleware', () => {
   let service1;
@@ -26,9 +26,12 @@ describe('Acceptance: listen middleware', () => {
   it('should allow multiple middleware functions', async (done) => {
     let hit = 0;
 
-    await service2.on('message', async (event, next) => {
+    await service2.on('message', async (event) => {
       hit += 1;
-      await next();
+    });
+
+    await service2.on('message', async () => {
+      hit += 1;
       try {
         expect(hit).to.equal(2);
         done();
@@ -36,10 +39,6 @@ describe('Acceptance: listen middleware', () => {
       catch(ex) {
         done(ex);
       }
-    });
-
-    await service2.on('message', async () => {
-      hit += 1;
     });
 
     await service1.emit('message', 'world');

@@ -48,11 +48,10 @@ describe('Router', () => {
 
   describe('.handle', () => {
     it('should process each matching layer', (done) => {
-      let calls = [ false, false, false, false ];
+      let calls = [ false, false, false, false, false ];
       let makeHandler = (index) => {
-        return async (event, next) => {
+        return async (event) => {
           calls[index] = true;
-          await next();
         };
       };
       router.add('path', makeHandler(0));

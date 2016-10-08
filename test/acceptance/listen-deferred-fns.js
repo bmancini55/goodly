@@ -7,7 +7,7 @@ const chai   = require('chai');
 const expect = chai.expect;
 
 const goodly   = require('../../src');
-const RABBITMQ = process.env.RABBITMQ || '192.168.99.100';
+const RABBITMQ = process.env.RABBITMQ || '127.0.0.1';
 
 describe('Acceptance: deferred listener with multi function', () => {
   let service1;
@@ -26,8 +26,10 @@ describe('Acceptance: deferred listener with multi function', () => {
   it('should listen to emitted events', async (done) => {
 
     await service2.on('message',
-      async (event, next) => {
-        await next();
+      async (event) => {
+        event.data += '!';
+      },
+      async (event) => {
         try {
           expect(event.data).to.equal('hello world!');
           done();
@@ -35,9 +37,6 @@ describe('Acceptance: deferred listener with multi function', () => {
         catch(ex) {
           done(ex);
         }
-      },
-      async (event) => {
-        event.data += '!';
       }
     );
 
