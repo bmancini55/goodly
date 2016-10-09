@@ -35,8 +35,19 @@ describe('Layer', () => {
         expect(layer.name).to.equal('<anonymous>');
       });
     });
-    describe('when lambda function', () => {
-
+    describe('when function accespts 1 argument', () => {
+      it('should flag the layer as an errorHandler', () => {
+        // eslint-disable-next-line no-unused-vars
+        let layer = new Layer('path', (event) => { });
+        expect(layer.handlesError).to.be.false;
+      });
+    });
+    describe('when function accepts 2 arguments', () => {
+      it('should not flag the layer as an errorHandler', () => {
+        // eslint-disable-next-line no-unused-vars
+        let layer = new Layer('path', (err, event) => { });
+        expect(layer.handlesError).to.be.true;
+      });
     });
     describe('when an empty path is defined', () => {
       it('should flag the regex with matchAll', () => {
@@ -60,12 +71,34 @@ describe('Layer', () => {
       });
     });
     describe('when matches regex', () => {
-      let layer = new Layer('path', () => {});
-      expect(layer.match('path')).to.be.true;
+      it('should return true', () => {
+        let layer = new Layer('path', () => {});
+        expect(layer.match('path')).to.be.true;
+      });
     });
     describe('when doesnt match regex', () => {
-      let layer = new Layer('path', () => {});
-      expect(layer.match('bad')).to.be.false;
+      it('should return false', () => {
+        let layer = new Layer('path', () => {});
+        expect(layer.match('bad')).to.be.false;
+      });
+    });
+    describe('when error', () => {
+      it('should return false when not error handler', () => {
+        let layer = new Layer('path', () => {});
+        expect(layer.match('path', new Error())).to.be.false;
+      });
+      it('should return true when error handler', () => {
+        // eslint-disable-next-line no-unused-vars
+        let layer = new Layer('path', (err, event) => {});
+        expect(layer.match('path', new Error())).to.be.true;
+      });
+    });
+    describe('when not error', () => {
+      it('should ignore errorHandlers', () => {
+        // eslint-disable-next-line no-unused-vars
+        let layer = new Layer('path', (err, event) => {});
+        expect(layer.match('path')).to.be.false;
+      });
     });
   });
 

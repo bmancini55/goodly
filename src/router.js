@@ -20,18 +20,30 @@ class Router {
   }
 
   async handle(path, event) {
-    let stack = this.stack;
+    try {
+      return await this._handle(path, event);
+    }
+    catch(err) {
+      return await this._handleError(err, path, event);
+    }
+  }
 
-    // loop through each layer
-    for(let layer of stack) {
-
-      // handle matches
+  async _handle(path, event) {
+    for(let layer of this.stack) {
       if(layer.match(path)) {
         await layer.handle(event);
       }
     }
-
     return event.response;
+  }
+
+  async _handleError(err, path, event) {
+    for(let layer of this.stack) {
+      if(layer.match(path, err)) {
+        await layer.handleError(err, event);
+      }
+    }
+    return err;
   }
 }
 
