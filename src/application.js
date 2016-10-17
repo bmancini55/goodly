@@ -158,9 +158,12 @@ class Application {
     if(!this._bindings[path]) {
       await channel.bindQueue(queue, exchange, path);
       this._bindings[path] = true;
+      debug(this.name + ' listens to %s', path);
     }
+  }
 
-    debug(this.name + ' listens to %s', path);
+  async use(...fns) {
+    this._inRouter.add(...fns);
   }
 
   /**
@@ -194,7 +197,7 @@ class Application {
    * @param  {Object} options.headers:      inputHeaders  [description]
    * @return {[type]}                       [description]
    */
-  async request(path, data = '', { correlationId = uuid.v4() } = {}) {
+  async request(path, data, { /* istanbul ignore next */ correlationId = uuid.v4() } = {}) {
     debug(this.name + ' request %s %s', path, correlationId);
     const replyTo = this.replyTo;
 
@@ -214,28 +217,36 @@ class Application {
   async _consumeServiceQueue() {
     const channel = this.channel();
     const handler = async (msg) => {
-      let correlationId = msg.properties.correlationId;
-      let contentType   = msg.properties.headers.contentType;
-      let path          = msg.fields.routingKey;
-      let router        = this._inRouter;
-      let buffer        = msg.content;
-      debug(this.name + ' on %s %s', path, correlationId);
+      try {
+        let correlationId = msg.properties.correlationId;
+        let contentType   = msg.properties.headers.contentType;
+        let path          = msg.fields.routingKey;
+        let router        = this._inRouter;
+        let buffer        = msg.content;
+        debug(this.name + ' on %s %s', path, correlationId);
 
-      // convert from buffer into
-      let data = convertFromBuffer(contentType, buffer);
+        // convert from buffer into
+        let data = convertFromBuffer(contentType, buffer);
 
-      // construct event object
-      let event = new Event({ service: this, msg: msg, data: data });
+        // construct event object
+        let event = new Event({ service: this, msg: msg, data: data });
 
-      // processing message
-      let result = await router.handle(path, event);
+        // processing message
+        let result = await router.handle(path, event);
 
-      // perform replyTo by directly emitting into the reply to queue
-      if(msg.properties.replyTo)
-        await this.emit(path, result, { correlationId, sendToQueue: msg.properties.replyTo });
+        // perform replyTo by directly emitting into the reply to queue
+        if(msg.properties.replyTo)
+          await this.emit(path, result, { correlationId, sendToQueue: msg.properties.replyTo });
 
-      // ack the message so that prefetch works
-      await channel.ack(msg);
+        // ack the message so that prefetch works
+        await channel.ack(msg);
+      }
+      catch(ex) {
+        /* istanbul ignore next */
+        console.error(ex.stack);
+        /* istanbul ignore next */
+        process.exit(1);
+      }
     };
 
     // start consuming the queue
@@ -254,6 +265,7 @@ class Application {
       let contentType   = msg.properties.headers.contentType;
       debug(this.name + ' received response for %s', correlationId);
 
+      /* istanbul ignore else */
       if(this._requests[correlationId]) {
         let buffer = msg.content;
         let data   = convertFromBuffer(contentType, buffer);
@@ -274,6 +286,10 @@ class Application {
       options.correlationId = options.correlationId || uuid.v4();
       options.headers       = options.headers || {};
       debug(this.name + ' applied default out middleware');
+    });
+    // eslint-disable-next-line no-unused-vars
+    this._inRouter.add((err, event) => {
+      console.log(err.stack);
     });
   }
 }

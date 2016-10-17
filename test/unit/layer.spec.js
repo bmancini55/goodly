@@ -110,22 +110,48 @@ describe('Layer', () => {
     });
     it('should call the handler function', (done) => {
       layer
-        .handle('event', 'next')
+        .handle('event')
         .then(() => expect(handler.called).to.be.true)
         .then(() => done())
         .catch(done);
     });
     it('should pass the event as the first argument', (done) => {
       layer
-        .handle('event', 'next')
+        .handle('event')
         .then(() => expect(handler.args[0][0]).to.equal('event'))
         .then(() => done())
         .catch(done);
     });
-    it('should pass the next function as the second argument', (done) => {
+  });
+
+  describe('.handleError', () => {
+    let fn, layer;
+    beforeEach(() => {
+      try {
+      // eslint-disable-next-line no-unused-vars
+      fn = sinon.spy((err, event) => {});
+      layer = new Layer('path', fn);
+    } catch(ex)
+    { console.log(ex.stack); }
+    });
+    it('should call the handler function', (done) => {
       layer
-        .handle('event', 'next')
-        .then(() => expect(handler.args[0][1]).to.equal('next'))
+        .handleError('err', 'event')
+        .then(() => expect(fn.called).to.be.true)
+        .then(() => done())
+        .catch(done);
+    });
+    it('should pass the err as the first argument', (done) => {
+      layer
+        .handleError('err', 'event')
+        .then(() => expect(fn.args[0][0]).to.equal('err'))
+        .then(() => done())
+        .catch(done);
+    });
+    it('should pass the event as the second argument', (done) => {
+      layer
+        .handleError('err', 'event')
+        .then(() => expect(fn.args[0][1]).to.equal('event'))
         .then(() => done())
         .catch(done);
     });

@@ -38,8 +38,12 @@ class Layer {
     return true;
   }
 
-  async handle(event, next) {
-    await this.fn(event, next);
+  async handle(event) {
+    await this.fn(event);
+  }
+
+  async handleError(err, event) {
+    await this.fn(err, event);
   }
 }
 

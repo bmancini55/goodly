@@ -11,7 +11,7 @@
     "test": "babel-node node_modules/.bin/_mocha test/unit/ test/acceptance/",
     "test:file": "babel-node node_modules/.bin/_mocha",
     "test:ci": "babel-node node_modules/.bin/babel-istanbul cover node_modules/.bin/_mocha --report lcovonly -- test/unit/ test/acceptance/",
-    "test:coverage": "babel-node node_modules/.bin/babel-istanbul cover node_modules/.bin/_mocha -- --reporter dot test/unit/"
+    "test:coverage": "babel-node node_modules/.bin/babel-istanbul cover node_modules/.bin/_mocha -- --reporter nyan test/unit/ test/acceptance/"
   },
   "repository": "bmancini55/goodly",
   "keywords": [

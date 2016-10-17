@@ -1,35 +1,40 @@
 /**
- * Integration test for validating deferred listening
- * works with simple emit + listen
+ * Integration test for validating error
  */
 
+const sinon  = require('sinon');
 const chai   = require('chai');
 const expect = chai.expect;
 
 const goodly   = require('../../src');
 const RABBITMQ = process.env.RABBITMQ || '127.0.0.1';
 
-describe('Acceptance: deferred listener with multi function', () => {
-  it('should listen to emitted events', async (done) => {
+describe('Acceptance: handles incoming  error', () => {
+  beforeEach(() => {
+    sinon.stub(console, 'log');
+  });
+  it('handles errors', (done) => {
     let service;
 
     Promise
       .resolve()
       .then(() => service = goodly({ name: 'test' }))
-      .then(() => service.on('listener-deferred-fn',
-        async (event) => {
-          event.data += '!';
-        },
-        async (event) => {
+      .then(() => service.on('handles-error', () => {
+        throw new Error('boom');
+      }))
+      .then(() =>
+        service.use((err, event) => { // eslint-disable-line no-unused-vars
           try {
-            expect(event.data).to.equal('hello world!');
+            expect(err.message).to.equal('boom');
             setTimeout(() => {
+              sinon.restore(console.log);
               service.stop();
               done();
             }, 500);
           }
           catch(ex) {
             setTimeout(() => {
+              sinon.restore(console.log);
               service.stop();
               done(ex);
             }, 500);
@@ -37,10 +42,9 @@ describe('Acceptance: deferred listener with multi function', () => {
         })
       )
       .then(() => service.start({ brokerPath: RABBITMQ }))
-      .then(() => service.emit('listener-deferred-fn', 'hello world'))
+      .then(() => service.emit('handles-error'))
       .catch(done);
   });
-
 });
 
 

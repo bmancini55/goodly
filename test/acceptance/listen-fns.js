@@ -11,45 +11,36 @@ const goodly   = require('../../src');
 const RABBITMQ = process.env.RABBITMQ || '127.0.0.1';
 
 describe('Acceptance: listen multi fns', () => {
-  let service1;
-  let service2;
-
-  before(async () => {
-    service1 = await goodly({ name: 'test1', brokerPath: RABBITMQ });
-    service2 = await goodly({ name: 'test2', brokerPath: RABBITMQ });
-  });
-
-  after(async () => {
-    await service1.stop();
-    await service2.stop();
-  });
-
   it('should allow multiple middleware functions', async (done) => {
+    let service;
     let hit = 0;
 
-    // apply multiple fns to the listen middlware
-    await service2.on(
-      // path
-      'message',
-
-      // fn1
-      async (event) => {
-        hit += 1;
-      },
-
-      // fn2
-      async () => {
-        hit += 1;
-        try {
-          expect(hit).to.equal(2);
-          done();
-        } catch (ex) {
-          done(ex);
+    Promise
+      .resolve()
+      .then(() => service = goodly({ name: 'test' }))
+      .then(() => service.start({ brokerPath: RABBITMQ }))
+      .then(() => service.on('listen-multi-fns',
+        async () => {
+          hit += 1;
+        },
+        async () => {
+          hit += 1;
+          try {
+            expect(hit).to.equal(2);
+            setTimeout(() => {
+              service.stop();
+              done();
+            }, 500);
+          } catch (ex) {
+            setTimeout(() => {
+              service.stop();
+              done(ex);
+            }, 500);
+          }
         }
-      }
-    );
-
-    await service1.emit('message', 'world');
+      ))
+      .then(() => service.emit('listen-multi-fns', 'world'))
+      .catch(done);
   });
 
 });

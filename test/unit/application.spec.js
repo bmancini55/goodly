@@ -125,6 +125,15 @@ describe('Application', () => {
           .catch(done);
       });
     });
+    describe('when broker not connected', () => {
+      it('should do nothing', (done) => {
+        app
+          .stop()
+          .then(() => expect(broker.close.called).to.be.false)
+          .then(() => done())
+          .catch(done);
+      });
+    });
   });
 
   describe('.channel', () => {
@@ -248,7 +257,7 @@ describe('Application', () => {
         it('should add listener to the router', (done) => {
           start()
             .then(() => app.on('path', function func() { }))
-            .then(() => expect(app._inRouter.stack[0].path).to.equal('path'))
+            .then(() => expect(app._inRouter.stack[1].path).to.equal('path'))
             .then(() => done())
             .catch(done);
         });
@@ -264,10 +273,10 @@ describe('Application', () => {
         it('should add listeners to the router', (done) => {
           start()
             .then(() => app.on('path', function fn1() { }, function fn2() { }))
-            .then(() => expect(app._inRouter.stack[0].path).to.equal('path'))
-            .then(() => expect(app._inRouter.stack[0].name).to.equal('fn1'))
             .then(() => expect(app._inRouter.stack[1].path).to.equal('path'))
-            .then(() => expect(app._inRouter.stack[1].name).to.equal('fn2'))
+            .then(() => expect(app._inRouter.stack[1].name).to.equal('fn1'))
+            .then(() => expect(app._inRouter.stack[2].path).to.equal('path'))
+            .then(() => expect(app._inRouter.stack[2].name).to.equal('fn2'))
             .then(() => done())
             .catch(done);
         });
@@ -286,9 +295,8 @@ describe('Application', () => {
           .then(() => app.on('path', function one() { }))
           .then(() => app.on('path', function two() { }))
           .then(() => {
-            expect(app._inRouter.stack.length).to.equal(2);
-            expect(app._inRouter.stack[0].name).to.equal('one');
-            expect(app._inRouter.stack[1].name).to.equal('two');
+            expect(app._inRouter.stack[1].name).to.equal('one');
+            expect(app._inRouter.stack[2].name).to.equal('two');
           })
           .then(() => done())
           .catch(done);
