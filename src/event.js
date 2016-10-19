@@ -9,6 +9,7 @@ class Event {
     this.correlationId = msg.properties.correlationId;
     this.sendDataEvent = msg.properties.headers.sendDataEvent;
     this.routingKey    = msg.fields.routingKey;
+    this.done          = false;
   }
 
   /**
@@ -37,6 +38,14 @@ class Event {
       throw new Error('Response has already been set');
     }
     this.response = data;
+  }
+
+  /**
+   * Terminates the event
+   * @return {[type]} [description]
+   */
+  end = () => {
+    this.done = true;
   }
 
 };

@@ -102,4 +102,11 @@ describe('Event', () => {
     });
   });
 
+  describe('.end()', () => {
+    it('should mark the event as done', () => {
+      event.end();
+      expect(event.done).to.be.true;
+    });
+  });
+
 });

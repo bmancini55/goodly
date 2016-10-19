@@ -32,6 +32,9 @@ class Router {
     for(let layer of this.stack) {
       if(layer.match(path)) {
         await layer.handle(event);
+        if(event.done) {
+          break;
+        }
       }
     }
     return event.response;

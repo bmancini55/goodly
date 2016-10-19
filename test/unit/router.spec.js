@@ -1,14 +1,22 @@
 
-let sinon  = require('sinon');
-let chai   = require('chai');
-let expect = chai.expect;
-let Router = require('../../src/router');
+import {expect} from 'chai';
+import Router from '../../src/router';
+import Event from '../../src/event';
 
 describe('Router', () => {
   let router;
+  let event;
 
   beforeEach(() => {
     router = new Router();
+    event = new Event({
+      msg: {
+        properties: {
+          headers: { },
+        },
+        fields: { },
+      },
+    });
   });
 
   describe('.add', () => {
@@ -78,6 +86,35 @@ describe('Router', () => {
           done();
         })
         .catch(done);
+    });
+    describe('when event is flagged as done', () => {
+      it('should not execute additional layers', (done) => {
+        let count = 0;
+        router.add('responder', () => count += 1 );
+        router.add('responder', (event) => { event.end(); });
+        router.add('responder', () => count += 1 );
+        router
+          .handle('responder', event)
+          .then(() => {
+            expect(count).to.equal(1);
+            done();
+          })
+          .catch(done);
+      });
+    });
+    describe('when event is not flagged as done', () => {
+      it('should execute matching layers', (done) => {
+        let count = 0;
+          router.add('responder', () => count += 1 );
+          router.add('responder', () => count += 1 );
+          router
+            .handle('responder', event)
+            .then(() => {
+              expect(count).to.equal(2);
+              done();
+            })
+            .catch(done);
+      });
     });
   });
 
