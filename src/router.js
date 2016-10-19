@@ -41,11 +41,18 @@ class Router {
   }
 
   async _handleError(err, path, event) {
+    let handled = false;
     for(let layer of this.stack) {
       if(layer.match(path, err)) {
         await layer.handleError(err, event);
+        handled = true;
       }
     }
+
+    if(!handled) {
+      throw err;
+    }
+
     return err;
   }
 }

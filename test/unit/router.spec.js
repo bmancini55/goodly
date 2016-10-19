@@ -116,6 +116,45 @@ describe('Router', () => {
             .catch(done);
       });
     });
+    describe('when error ocurrs', () => {
+      it('should call error handlers', (done) => {
+        let called1, called2;
+        router.add('responder', () => { throw new Error('boom'); });
+        router.add('', (err, event) => called1 = true); // eslint-disable-line no-unused-vars
+        router.add('', (err, event) => called2 = true); // eslint-disable-line no-unused-vars
+        router
+          .handle('responder', event)
+          .then(() => {
+            expect(called1).to.be.true;
+            expect(called2).to.be.true;
+            done();
+          })
+          .catch(done);
+      });
+      it('should return error', (done) => {
+        router.add('responder', () => { throw new Error('boom'); });
+        router.add('', (err, event) => {}); // eslint-disable-line no-unused-vars
+        router
+          .handle('responder', event)
+          .then((err) => {
+            expect(err.message).to.equal('boom');
+            done();
+          })
+          .catch(done);
+      });
+      it('should rethrow exception when no error handler', (done) => {
+        router.add('responder', () => { throw new Error('boom'); });
+        router
+          .handle('responder', event)
+          .catch((err) => {
+            expect(err.message).to.equal('boom');
+            done();
+          })
+          .catch(done);
+
+
+      });
+    });
   });
 
 });
