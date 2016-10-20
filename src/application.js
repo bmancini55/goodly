@@ -45,7 +45,7 @@ class Application {
     await channel.assertExchange(appExchange, 'fanout');
     await channel.assertExchange(this.name, 'topic');
     await channel.bindExchange(this.name, this.appExchange, '');
-    await channel.assertQueue(this.name, { expires: 3600000 });
+    await channel.assertQueue(this.name, { expires: 3600000, messageTtl: 3600000 });
 
     // setup exclusive queue for requestion/response
     this.replyTo = (await channel.assertQueue('', { exclusive: true })).queue;
