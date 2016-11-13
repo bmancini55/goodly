@@ -25,7 +25,7 @@ describe('Router', () => {
         let func = () => {};
         router.add(func);
         let layer = router.stack[0];
-        expect(layer.path).to.equal('');
+        expect(layer.path).to.equal('#');
         expect(layer.regexp.matchAll).to.be.true;
         expect(layer.fn).to.equal(func);
       });
@@ -120,8 +120,8 @@ describe('Router', () => {
       it('should call error handlers', (done) => {
         let called1, called2;
         router.add('responder', () => { throw new Error('boom'); });
-        router.add('', (err, event) => called1 = true); // eslint-disable-line no-unused-vars
-        router.add('', (err, event) => called2 = true); // eslint-disable-line no-unused-vars
+        router.add('#', (err, event) => called1 = true); // eslint-disable-line no-unused-vars
+        router.add('#', (err, event) => called2 = true); // eslint-disable-line no-unused-vars
         router
           .handle('responder', event)
           .then(() => {
@@ -133,7 +133,7 @@ describe('Router', () => {
       });
       it('should return error', (done) => {
         router.add('responder', () => { throw new Error('boom'); });
-        router.add('', (err, event) => {}); // eslint-disable-line no-unused-vars
+        router.add('#', (err, event) => {}); // eslint-disable-line no-unused-vars
         router
           .handle('responder', event)
           .then((err) => {

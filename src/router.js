@@ -8,7 +8,7 @@ class Router {
     let layer;
 
     if(typeof(path) === 'function') {
-      layer = new Layer('', path);
+      layer = new Layer('#', path);
       this.stack.push(layer);
     }
     else {

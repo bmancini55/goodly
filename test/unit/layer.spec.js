@@ -16,11 +16,104 @@ describe('Layer', () => {
       let layer = new Layer('path', func);
       expect(layer.fn).to.equal(func);
     });
+    it('should throw exception when path is longer than 255 bytes', () => {
+      expect(() => new Layer('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',() => {}))
+      .to.throw(Error);
+    });
+    it('should throw execption when path contains invalid characters', () => {
+      expect(() => new Layer('$')).to.throw(Error);
+    });
     describe('when layer regex is constructred', () => {
-      it('should allow an exact match of the path', () => {
-        let layer = new Layer('path', () => {});
-        let match = layer.regexp.test('path');
-        expect(match).to.be.true;
+      it('should note match star at start with multiple words', () => {
+        let layer = new Layer('*.derp.turkey', () => {});
+        let path = 'hello.world.derp.turkey';
+        expect(layer.regexp.test(path)).to.be.false;
+      });
+      it('should match star at start with single word', () => {
+        let layer = new Layer('*.derp.turkey', () => {});
+        let path = 'hello.derp.turkey';
+        expect(layer.regexp.test(path)).to.be.true;
+      });
+      it('should match star at start with no word', () => {
+        let layer = new Layer('*.derp.turkey', () => {});
+        let path = 'derp.turkey';
+        expect(layer.regexp.test(path)).to.be.true;
+      });
+      it('should not match star in middle with multiple words', () => {
+        let layer = new Layer('derp.*.turkey', () => {});
+        let path = 'derp.hello.world.turkey';
+        expect(layer.regexp.test(path)).to.be.false;
+      });
+      it('should match star in middle with single word', () => {
+        let layer = new Layer('derp.*.turkey', () => {});
+        let path = 'derp.hello.turkey';
+        expect(layer.regexp.test(path)).to.be.true;
+      });
+      it('should match star in middle with no word', () => {
+        let layer = new Layer('derp.*.turkey', () => {});
+        let path = 'derp.turkey';
+        expect(layer.regexp.test(path)).to.be.true;
+      });
+      it('should not match star at end with multiple words', () => {
+        let layer = new Layer('derp.turkey.*', () => {});
+        let path = 'derp.turkey.hello.world';
+        expect(layer.regexp.test(path)).to.be.false;
+      });
+      it('should match star at end with single word', () => {
+        let layer = new Layer('derp.turkey.*', () => {});
+        let path = 'derp.turkey.hello';
+        expect(layer.regexp.test(path)).to.be.true;
+      });
+      it('should match star at end with no word', () => {
+        let layer = new Layer('derp.turkey.*', () => {});
+        let path = 'derp.turkey';
+        expect(layer.regexp.test(path)).to.be.true;
+      });
+
+      it('should match hash at start with multiple words', () => {
+        let layer = new Layer('#.derp.turkey', () => {});
+        let path = 'hello.world.derp.turkey';
+        expect(layer.regexp.test(path)).to.be.true;
+      });
+      it('should match hash at start with single word', () => {
+        let layer = new Layer('#.derp.turkey', () => {});
+        let path = 'hello.derp.turkey';
+        expect(layer.regexp.test(path)).to.be.true;
+      });
+      it('should match hash at start with no word', () => {
+        let layer = new Layer('#.derp.turkey', () => {});
+        let path = 'derp.turkey';
+        expect(layer.regexp.test(path)).to.be.true;
+      });
+      it('should match hash in middle with multiple words', () => {
+        let layer = new Layer('derp.#.turkey', () => {});
+        let path = 'derp.hello.world.turkey';
+        expect(layer.regexp.test(path)).to.be.true;
+      });
+      it('should match hash in middle with single word', () => {
+        let layer = new Layer('derp.#.turkey', () => {});
+        let path = 'derp.hello.turkey';
+        expect(layer.regexp.test(path)).to.be.true;
+      });
+      it('should match hash in middle with no word', () => {
+        let layer = new Layer('derp.#.turkey', () => {});
+        let path = 'derp.turkey';
+        expect(layer.regexp.test(path)).to.be.true;
+      });
+      it('should match hash at end with multiple words', () => {
+        let layer = new Layer('derp.turkey.#', () => {});
+        let path = 'derp.turkey.hello.world';
+        expect(layer.regexp.test(path)).to.be.true;
+      });
+      it('should match hash at end with single word', () => {
+        let layer = new Layer('derp.turkey.#', () => {});
+        let path = 'derp.turkey.hello';
+        expect(layer.regexp.test(path)).to.be.true;
+      });
+      it('should match hash at end with no word', () => {
+        let layer = new Layer('derp.turkey.#', () => {});
+        let path = 'derp.turkey';
+        expect(layer.regexp.test(path)).to.be.true;
       });
     });
     describe('when named function', () => {
@@ -49,9 +142,9 @@ describe('Layer', () => {
         expect(layer.handlesError).to.be.true;
       });
     });
-    describe('when an empty path is defined', () => {
+    describe('when hash is defined', () => {
       it('should flag the regex with matchAll', () => {
-        let layer = new Layer('', () => {});
+        let layer = new Layer('#', () => {});
         expect(layer.regexp.matchAll).to.be.true;
       });
     });
@@ -66,7 +159,7 @@ describe('Layer', () => {
     });
     describe('when matchAll is true', () => {
       it('should return true', () => {
-        let layer = new Layer('', () => {});
+        let layer = new Layer('#', () => {});
         expect(layer.match('test')).to.be.true;
       });
     });
