@@ -1,6 +1,6 @@
 
 import amqplib from 'amqplib';
-import uuid from 'node-uuid';
+import uuid from 'uuid';
 import Debug from 'debug';
 import Router from './router';
 import Event from './event';
