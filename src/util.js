@@ -24,6 +24,11 @@ function convertFromBuffer(contentType, buffer) {
       return JSON.parse(buffer.toString());
     case 'object':
       return JSON.parse(buffer.toString());
+    case 'error':
+      let temp = JSON.parse(buffer.toString());
+      let err = new Error(temp.message);
+      err.stack = temp.stack;
+      return err;
   };
 };
 
@@ -58,6 +63,10 @@ function convertToBuffer(data) {
   else if(Array.isArray(data)) {
     contentType = 'array';
     buffer = Buffer.from(JSON.stringify(data));
+  }
+  else if (data instanceof Error) {
+    contentType = 'error';
+    buffer = Buffer.from(JSON.stringify({ message: data.message, stack: data.stack }));
   }
   else if(typeof data === 'object') {
     contentType = 'object';

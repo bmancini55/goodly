@@ -162,6 +162,11 @@ class Application {
     }
   }
 
+  /**
+   * Attaches a method directly to the router. This is stupid API and needs to be more clear
+   * @param  {...[type]} fns [description]
+   * @return {[type]}        [description]
+   */
   async use(...fns) {
     this._inRouter.add(...fns);
   }
@@ -201,12 +206,19 @@ class Application {
     debug(this.name + ' request %s %s', path, correlationId);
     const replyTo = this.replyTo;
 
-    // publish the event and include the correlationId and the replyTo queue
-    return new Promise((resolve) => {
-      this._requests[correlationId] = (receivedData) => resolve(receivedData);
-      this.emit(path, data, { correlationId, replyTo });
+    // create a promise to be returned that will act as the callback from the reply queue
+    let result = new Promise((resolve, reject) => {
+      this._requests[correlationId] = (err, data) => {
+        if(err) reject(err);
+        else    resolve(data);
+      };
     });
 
+    // publish the event and include the correlationId and the replyTo queue
+    await this.emit(path, data, { correlationId, replyTo });
+
+    // return promise
+    return result;
   }
 
 
@@ -269,7 +281,12 @@ class Application {
       if(this._requests[correlationId]) {
         let buffer = msg.content;
         let data   = convertFromBuffer(contentType, buffer);
-        this._requests[correlationId](data);
+        if(contentType === 'error') {
+          this._requests[correlationId](data);
+        }
+        else {
+          this._requests[correlationId](null, data);
+        }
       }
     };
 

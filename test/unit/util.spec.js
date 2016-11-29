@@ -135,6 +135,22 @@ describe('util', () => {
       });
     });
 
+    describe('when input is error', () => {
+      let error;
+      beforeEach(() => {
+        error = new Error('boom');
+        error.stack = 'stack';
+      });
+      it('should return buffer with serialized error', () => {
+        let { buffer } = util.convertToBuffer(error);
+        expect(buffer).to.deep.equal(Buffer.from(JSON.stringify({ message: 'boom', stack: 'stack' })));
+      });
+      it('should return the contentType of error', () => {
+        let { contentType } = util.convertToBuffer(error);
+        expect(contentType).to.equal('error');
+      });
+    });
+
   });
 
   describe('#convertFromBuffer', () => {
@@ -196,6 +212,14 @@ describe('util', () => {
         let input = Buffer.from(JSON.stringify({ foo: 'bar' }));
         let actual = util.convertFromBuffer('object', input);
         expect(actual).to.deep.equal({ foo: 'bar' });
+      });
+    });
+    describe('when contentType is error', () => {
+      it('should return an error object', () => {
+        let input = Buffer.from(JSON.stringify({ message: 'boom', stack: 'stack' }));
+        let actual = util.convertFromBuffer('error', input);
+        expect(actual.message).to.equal('boom');
+        expect(actual.stack).to.equal('stack');
       });
     });
   });
