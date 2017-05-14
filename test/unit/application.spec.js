@@ -10,6 +10,14 @@ describe('Application', () => {
   let broker;
   let channel;
 
+  before(() => {
+    sinon.stub(console, 'error');
+  });
+
+  after(() => {
+    console.error.restore();
+  });
+
   beforeEach(() => {
     app = new Application({ name: 'test' });
   });
@@ -23,7 +31,8 @@ describe('Application', () => {
   beforeEach(() => {
     broker = {
       createChannel: () => channel,
-      close: sinon.stub()
+      close: sinon.stub(),
+      on: sinon.stub(),
     };
   });
 
@@ -47,7 +56,7 @@ describe('Application', () => {
 
 
   const start = async () => {
-    await app.start({ brokerPath: 'broker', amqp });
+    await app.start({ brokerPath: 'broker', amqp, retryMultiplier: 1 });
     return app;
   };
 
@@ -107,11 +116,45 @@ describe('Application', () => {
         .then(() => done())
         .catch(done);
     });
+    it('should attach a handler for broker errors', (done) => {
+      start()
+        .then(() => expect(broker.on.getCall(0).args[0]).be.equal('error'))
+        .then(() => done())
+        .catch(done);
+    });
     it('should return the service', (done) => {
       start()
         .then((service) => expect(service).to.equal(app))
         .then(() => done())
         .catch(done);
+    });
+
+    describe('when connection error', () =>{
+      beforeEach(() => {
+        amqp.connect = sinon.stub();
+        amqp.connect.onCall(0).rejects(new Error('Boom'));
+        amqp.connect.onCall(1).rejects(new Error('Boom 2'));
+        amqp.connect.onCall(2).resolves(broker);
+      });
+      it('should retry connection', (done) => {
+        start({ retryMultiplier: 1})
+          .then(() => expect(amqp.connect.callCount).to.equal(3))
+          .then(() => done())
+          .catch(done);
+      });
+    });
+
+    describe('when broker error', () => {
+      beforeEach(() => {
+        amqp.connect = sinon.stub().resolves(broker);
+      });
+      it('should reestablish connection', (done) => {
+        start({ retryMultiplier: 1})
+          .then(() => broker.on.getCall(0).args[1](new Error('Boom')))
+          .then(() => expect(amqp.connect.callCount).to.equal(2))
+          .then(() => done())
+          .catch(done);
+      });
     });
   });
 

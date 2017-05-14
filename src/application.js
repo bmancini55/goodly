@@ -25,7 +25,56 @@ class Application {
     this._requests = [];
     this._bindings = {};
     this._deferredBindings = [];
+    this._startOpts;
+    this._connectionAttempt = 0;
     debug(this.name + ' created');
+  }
+
+  /**
+   * Starts the goodly service including retry and failure logic
+   * @param  {[type]} options.brokerPath [description]
+   * @param  {[type]} options.concurrent [description]
+   * @param  {[type]} options.amqp       [description]
+   * @return {[type]}                    [description]
+   */
+  async start({ brokerPath, concurrent = 5, amqp = amqplib, retryMultiplier = 1000 }) {
+    this._startOpts = { brokerPath, concurrent, amqp, retryMultiplier };
+    try {
+      await this._connect();
+    }
+    catch(ex) {
+      await this._retryConnect(ex.message);
+    }
+    return this;
+  }
+
+  /**
+   * Performs recursive retries with exponential backoff.
+   * Promise will resolve when a successful connection is achieved
+   * @param  {[type]} errMsg [description]
+   * @return {[type]}        [description]
+   */
+  _retryConnect(errMsg) {
+    return new Promise((resolve) => {
+      let { brokerPath, retryMultiplier } = this._startOpts;
+      let backoff = Math.min(Math.ceil(Math.pow(1.73, ++this._connectionAttempt) - 1), 120);
+      console.error(`Failed to connect to RabbitMQ ${brokerPath} (${errMsg}), retrying in ${backoff}s`);
+      setTimeout(() => {
+        this._connect()
+          .catch((err) => this._retryConnect(err.message))
+          .then(resolve);
+      }, backoff * retryMultiplier);
+    });
+  }
+
+  /**
+   * Handles broker error and performs automatic retry
+   * @param  {[type]} e [description]
+   * @return {[type]}   [description]
+   */
+  _onBrokerError(e) {
+    console.error(`RabbitMQ connection error: ${e.message}`);
+    return this._retryConnect(e.message);
   }
 
   /**
@@ -34,10 +83,16 @@ class Application {
    * @param  {[type]} brokerPath [description]
    * @return {[type]}            [description]
    */
-  async start({ brokerPath, concurrent = 5, amqp = amqplib }) {
+  async _connect() {
+    let {
+      brokerPath,
+      concurrent,
+      amqp
+    } = this._startOpts;
+
     this._broker = await amqp.connect('amqp://' + brokerPath);
     this._channel = await this._broker.createChannel();
-    debug(this.name + ' connected to RabbitMQ %s', brokerPath);
+    console.error('Connected to RabbitMQ %s', brokerPath);
 
     // setup service exchange and queue
     const channel = this._channel;
@@ -68,6 +123,12 @@ class Application {
 
     // start consuming reply channel
     await this._consumeReplyQueue();
+
+    // attach error handler to broker
+    this._broker.on('error', this._onBrokerError.bind(this));
+
+    // reset connection attempts
+    this._connectionAttempt = 0;
 
     // return the service for proper chaining
     return this;
