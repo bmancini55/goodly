@@ -3,6 +3,7 @@
  * as expected for a simple use case.
  */
 
+const sinon  = require('sinon');
 const chai   = require('chai');
 const expect = chai.expect;
 
@@ -10,7 +11,13 @@ const goodly   = require('../../src');
 const RABBITMQ = process.env.RABBITMQ || '127.0.0.1';
 
 describe('Acceptance: listen and emit', () => {
-  it('should listen to emitted events', async (done) => {
+  beforeEach(() => {
+    sinon.stub(console, 'error');
+  });
+  afterEach(() => {
+    console.error.restore();
+  });
+  it('should listen to emitted events', (done) => {
     let service;
 
     // start service and emit test event
@@ -18,7 +25,7 @@ describe('Acceptance: listen and emit', () => {
       .resolve()
       .then(() => service = goodly({ name: 'test' }))
       .then(() =>
-        service.on('emit-listen', async ({ data }) => {
+        service.on('emit-listen', ({ data }) => {
           try {
             expect(data).to.equal('hello world');
             setTimeout(() => {

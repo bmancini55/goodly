@@ -1,8 +1,10 @@
 
-import Layer from './layer';
+let Layer = require('./layer');
 
 class Router {
-  stack = []
+  constructor() {
+    this.stack = [];
+  }
 
   add(path, ...fns) {
     let layer;

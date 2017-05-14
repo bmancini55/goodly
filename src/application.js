@@ -1,10 +1,11 @@
 
-import amqplib from 'amqplib';
-import uuid from 'uuid';
-import Debug from 'debug';
-import Router from './router';
-import Event from './event';
-import { convertToBuffer, convertFromBuffer } from './util';
+let amqplib = require('amqplib');
+let uuid    = require('uuid');
+let Debug   = require('debug');
+let Router  = require('./router');
+let Event   = require('./event');
+
+let { convertToBuffer, convertFromBuffer } = require('./util');
 const debug = Debug('goodly');
 
 class Application {
@@ -167,7 +168,7 @@ class Application {
     const channel = this.channel();
 
     // rewrite options to include data
-    let event = { data, ...options };
+    let event = Object.assign({ data }, options);
 
     // generate options through middleware
     await this._outRouter.handle(path, event);
@@ -178,7 +179,7 @@ class Application {
       replyTo,
       headers,
       sendToQueue
-    } = { ...event };
+    } = Object.assign({}, event);
 
     // create the buffer and modify the headers
     let { buffer, contentType } = convertToBuffer(event.data);

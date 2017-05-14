@@ -3,6 +3,7 @@
  * middleware works as expected and allows events
  */
 
+const sinon  = require('sinon');
 const chai   = require('chai');
 const expect = chai.expect;
 
@@ -10,6 +11,12 @@ const goodly   = require('../../src');
 const RABBITMQ = process.env.RABBITMQ || '127.0.0.1';
 
 describe('Acceptance: deferred emit middleware', () => {
+  beforeEach(() => {
+    sinon.stub(console, 'error');
+  });
+  afterEach(() => {
+    console.error.restore();
+  });
   it('should allow deferred emit middleware', (done) => {
     let service;
 

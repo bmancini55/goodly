@@ -1,5 +1,4 @@
 
-
 class Event {
 
   constructor({ service, msg, data }) {
@@ -10,6 +9,13 @@ class Event {
     this.sendDataEvent = msg.properties.headers.sendDataEvent;
     this.routingKey    = msg.fields.routingKey;
     this.done          = false;
+
+    // enforce bindings so that methods can be used
+    // in handlers by directly passing the function to the handler
+    // and still retaining the binding
+    this.emit  = this.emit.bind(this);
+    this.reply = this.reply.bind(this);
+    this.end   = this.end.bind(this);
   }
 
   /**
@@ -21,19 +27,18 @@ class Event {
    * @param  {[type]} options [description]
    * @return {[type]}         [description]
    */
-  emit = async (path, data, options) => {
+  async emit(path, data, options) {
     this.service.emit(path, data, Object.assign({ correlationId: this.correlationId }, options));
   }
 
   /**
-   * Reply to a request. Created as
-   * an arrow function so that is automatically bound to the current
+   * Reply to a request.
    * scope.
    * @param  {[type]} data    [description]
    * @param  {[type]} options [description]
    * @return {[type]}         [description]
    */
-  reply = (data) => {
+  reply(data) {
     if(this.response) {
       throw new Error('Response has already been set');
     }
@@ -44,11 +49,11 @@ class Event {
    * Terminates the event
    * @return {[type]} [description]
    */
-  end = () => {
+  end() {
     this.done = true;
   }
 
-};
+}
 
 
 module.exports = Event;

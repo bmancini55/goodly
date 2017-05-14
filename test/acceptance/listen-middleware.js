@@ -3,6 +3,7 @@
  * up as expected.
  */
 
+const sinon  = require('sinon');
 const chai   = require('chai');
 const expect = chai.expect;
 
@@ -10,7 +11,13 @@ const goodly   = require('../../src');
 const RABBITMQ = process.env.RABBITMQ || '127.0.0.1';
 
 describe('Acceptance: listen middleware', () => {
-  it('should allow multiple middleware functions', async (done) => {
+  beforeEach(() => {
+    sinon.stub(console, 'error');
+  });
+  afterEach(() => {
+    console.error.restore();
+  });
+  it('should allow multiple middleware functions', (done) => {
     let service;
     let hit = 0;
 

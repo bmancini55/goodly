@@ -3,6 +3,7 @@
  * middleware works as expected and allows events
  */
 
+const sinon  = require('sinon');
 const chai   = require('chai');
 const expect = chai.expect;
 
@@ -10,7 +11,13 @@ const goodly   = require('../../src');
 const RABBITMQ = process.env.RABBITMQ || '127.0.0.1';
 
 describe('Acceptance: emit middleware', () => {
-  it('should allow emit middleware to mutate the outbound event', async (done) => {
+  beforeEach(() => {
+    sinon.stub(console, 'error');
+  });
+  afterEach(() => {
+    console.error.restore();
+  });
+  it('should allow emit middleware to mutate the outbound event', (done) => {
     let service;
 
     Promise

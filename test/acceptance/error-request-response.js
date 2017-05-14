@@ -3,13 +3,16 @@
  */
 
 const sinon  = require('sinon');
-
 const goodly   = require('../../src');
 const RABBITMQ = process.env.RABBITMQ || '127.0.0.1';
 
 describe('Acceptance: handles request/response error', () => {
   beforeEach(() => {
     sinon.stub(console, 'log');
+    sinon.stub(console, 'error');
+  });
+  afterEach(() => {
+    console.error.restore();
   });
   it('handles errors', (done) => {
     let service;
@@ -37,7 +40,7 @@ describe('Acceptance: handles request/response error', () => {
         }
         finally {
           setTimeout(() => {
-            sinon.restore(console.log);
+            console.log.restore();
             service.stop();
             done(assertError);
           }, 500);

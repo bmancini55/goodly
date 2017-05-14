@@ -1,7 +1,7 @@
 
-import {expect} from 'chai';
-import Router from '../../src/router';
-import Event from '../../src/event';
+let {expect} = require('chai');
+let Router   = require('../../src/router');
+let Event    = require('../../src/event');
 
 describe('Router', () => {
   let router;

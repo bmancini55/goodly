@@ -3,6 +3,7 @@
  * functionality has not regressed
  */
 
+const sinon  = require('sinon');
 const chai   = require('chai');
 const expect = chai.expect;
 
@@ -10,7 +11,13 @@ const goodly   = require('../../src');
 const RABBITMQ = process.env.RABBITMQ || '127.0.0.1';
 
 describe('Acceptance: request & response', () => {
-  it('should wait for reply', async (done) => {
+  beforeEach(() => {
+    sinon.stub(console, 'error');
+  });
+  afterEach(() => {
+    console.error.restore();
+  });
+  it('should wait for reply', (done) => {
     let service;
 
     Promise

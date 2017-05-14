@@ -1,5 +1,3 @@
-require('babel-regenerator-runtime');
-require('source-map-support/register');
 const Application = require('./application');
 
 /**

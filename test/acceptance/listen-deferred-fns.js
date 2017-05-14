@@ -3,6 +3,7 @@
  * works with simple emit + listen
  */
 
+const sinon  = require('sinon');
 const chai   = require('chai');
 const expect = chai.expect;
 
@@ -10,7 +11,13 @@ const goodly   = require('../../src');
 const RABBITMQ = process.env.RABBITMQ || '127.0.0.1';
 
 describe('Acceptance: deferred listener with multi function', () => {
-  it('should listen to emitted events', async (done) => {
+  beforeEach(() => {
+    sinon.stub(console, 'error');
+  });
+  afterEach(() => {
+    console.error.restore();
+  });
+  it('should listen to emitted events', (done) => {
     let service;
 
     Promise
