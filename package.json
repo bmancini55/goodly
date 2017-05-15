@@ -5,8 +5,8 @@
   "author": "Brian <bmancini@gmail.com>",
   "main": "src/index.js",
   "scripts": {
-    "test": "node node_modules/.bin/_mocha test/unit/ test/acceptance/",
-    "test:file": "node node_modules/.bin/_mocha",
+    "test": "mocha test/unit/ test/acceptance/",
+    "test:file": "mocha",
     "test:ci": "istanbul cover node_modules/.bin/_mocha --report lcovonly -- test/unit/ test/acceptance/",
     "test:coverage": "istanbul cover node_modules/.bin/_mocha -- --reporter nyan test/unit/ test/acceptance/"
   },
@@ -32,7 +32,7 @@
     "chai": "^3.5.0",
     "eslint": "^3.19.0",
     "istanbul": "^1.1.0-alpha.1",
-    "mocha": "^3.4.0",
+    "mocha": "^3.4.1",
     "sinon": "^2.2.0"
   }
 }
