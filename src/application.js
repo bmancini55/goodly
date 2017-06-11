@@ -112,8 +112,7 @@ class Application {
     // attach deferred listeners
     let binding;
     while((binding = this._deferredBindings.shift())) {
-      let method = binding.shift();
-      await this[method].apply(this, binding);
+      await this._attachHandler.call(this, binding);
     }
 
     // configure prefetch for the channel
@@ -201,27 +200,14 @@ class Application {
    * Binds the method to the event for listening
    * @private
    */
-  async on(path, ...fns) {
-    const channel  = this._channel;
+  on(path, ...fns) {
     const router   = this._inRouter;
-    const exchange = this.name;
-    const queue    = this.name;
-
-    // if not yet connected to the broker we need to defer
-    if(!channel) {
-      this._deferredBindings.push(['on', path, ...fns]);
-      return;
-    }
 
     // attach handler to the router
     router.add(path, ...fns);
 
-    // bind the queue if we haven't already
-    if(!this._bindings[path]) {
-      await channel.bindQueue(queue, exchange, path);
-      this._bindings[path] = true;
-      debug(this.name + ' listens to %s', path);
-    }
+    // add to the deferred bindings once the service starts
+    this._deferredBindings.push(path);
   }
 
   /**
@@ -240,19 +226,10 @@ class Application {
    * @return {[type]}         [description]
    */
   async onEmit(path, ...fns) {
-    const channel = this._channel;
-    const router  = this._outRouter;
-
-    // if not yet connected to the broker we will defer
-    if(!channel) {
-      this._deferredBindings.push(['onEmit', path, ...fns]);
-      return;
-    }
+    debug(this.name + ' added emit middleware for ' + path);
 
     // attach handler to the router
-    router.add(path, ...fns);
-
-    debug(this.name + ' added emit middleware for ' + path);
+    this._outRouter.add(path, ...fns);
   }
 
   /**
@@ -283,6 +260,24 @@ class Application {
     return result;
   }
 
+  /**
+   * Attach the handler now that channel is open
+   * @param  {[type]}    path [description]
+   * @param  {...[type]} fns  [description]
+   * @return {[type]}         [description]
+   */
+  async _attachHandler(path) {
+    const channel  = this._channel;
+    const exchange = this.name;
+    const queue    = this.name;
+
+    // bind the queue if we haven't already
+    if(!this._bindings[path]) {
+      await channel.bindQueue(queue, exchange, path);
+      this._bindings[path] = true;
+      debug(this.name + ' listening to %s', path);
+    }
+  }
 
   /**
    * Consume the service queue
@@ -368,7 +363,7 @@ class Application {
     });
     // eslint-disable-next-line no-unused-vars
     this._inRouter.add((err, event) => {
-      console.log(err.stack);
+      console.error(err.stack);
     });
   }
 }
