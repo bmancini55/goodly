@@ -112,7 +112,7 @@ class Application {
     // attach deferred listeners
     let binding;
     while((binding = this._deferredBindings.shift())) {
-      await this._attachHandler.call(this, binding);
+      await this._bindQueue.call(this, binding);
     }
 
     // configure prefetch for the channel
@@ -201,36 +201,97 @@ class Application {
    * @private
    */
   on(path, ...fns) {
-    const router   = this._inRouter;
 
     // attach handler to the router
-    router.add(path, ...fns);
+    this._inRouter.add(path, ...fns);
 
     // add to the deferred bindings once the service starts
     this._deferredBindings.push(path);
   }
 
   /**
-   * Attaches a method directly to the router. This is stupid API and needs to be more clear
-   * @param  {...[type]} fns [description]
-   * @return {[type]}        [description]
-   */
-  async use(...fns) {
-    this._inRouter.add(...fns);
-  }
-
-  /**
-   * Add middleware for
+   * Attach middleware to the service
+   * path   -> exist            (bind to routers using path)
+   *        -> not-exist        (bind to routers without path)
+   * fns    -> 1 func           (bind to in-router)
+   *        -> N func           (bind to in-router)
+   *        -> obj.in           (bind to in-router)
+   *        -> obj.out          (bind to out-router)
    * @param  {[type]}    path [description]
    * @param  {...[type]} fns  [description]
    * @return {[type]}         [description]
    */
-  async onEmit(path, ...fns) {
-    debug(this.name + ' added emit middleware for ' + path);
+  use() {
 
-    // attach handler to the router
-    this._outRouter.add(path, ...fns);
+    let inRouter = this._inRouter;
+    let outRouter = this._outRouter;
+    let path = '#';
+    let fns = Array.prototype.slice.call(arguments);
+
+    if(typeof fns[0] === 'string') {
+      path = fns[0];
+      fns.splice(0, 1);
+    }
+
+    if (fns.length === 0) {
+      throw new TypeError('.use requires middleware functions');
+    }
+
+    function addFns(fns, router) {
+
+      // ensure we're working iterable
+      // incase addFns is called with single fn
+      if(typeof fns === 'function') {
+        fns = [ fns ];
+      }
+
+      // ensure array
+      if(!Array.isArray(fns)) {
+        throw new TypeError('\'fns\' must be a function or array of functions');
+      }
+
+
+      for(let fn of fns) {
+
+        // handle object
+        if (fn && (fn.in || fn.out)) {
+
+          if(fn.in) {
+            addFns(fn.in, inRouter);
+          }
+
+          if(fn.out) {
+            addFns(fn.out, outRouter);
+          }
+        }
+
+        // handle function
+        else if(typeof fn === 'function') {
+          router.add(path, fn);
+        }
+
+        else {
+          throw new TypeError('.use requires middleware functions');
+        }
+      }
+    }
+
+    // add them
+    addFns(fns, inRouter);
   }
+
+  /**
+   * Add middleware for to mutate outbound events
+   * @param  {[type]}    path [description]
+   * @param  {...[type]} fns  [description]
+   * @return {[type]}         [description]
+   */
+  // async mutateEventOut(path, ...fns) {
+    // debug(this.name + ' added out middleware for ' + path);
+
+    // // attach handler to the router
+    // this._outRouter.add(path, ...fns);
+  // }
 
   /**
    * Performs a request in a request/response interaction. Similar
@@ -261,12 +322,18 @@ class Application {
   }
 
   /**
-   * Attach the handler now that channel is open
-   * @param  {[type]}    path [description]
-   * @param  {...[type]} fns  [description]
-   * @return {[type]}         [description]
+   * Binds the servie queue to the service exchange
+   * based on the specified path. This method ensures
+   * that the _inRouter handlers will receive messages
+   * for the path specified in the handler.
+   *
+   * If the exchange has already been bound, this method
+   * is a no-op.
+   *
+   * @private
+   * @param  {string} path - the path of the message
    */
-  async _attachHandler(path) {
+  async _bindQueue(path) {
     const channel  = this._channel;
     const exchange = this.name;
     const queue    = this.name;
@@ -364,6 +431,7 @@ class Application {
     // eslint-disable-next-line no-unused-vars
     this._inRouter.add((err, event) => {
       console.error(err.stack);
+      event.end();
     });
   }
 }

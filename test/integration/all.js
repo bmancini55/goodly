@@ -35,12 +35,12 @@ describe('Integration', () => {
     it('should handle events in cascade order', async () => {
       return new Promise(async (resolve, reject) => {
 
-        // attach listener middleware
-        serviceA.on('listen-middleware', (event) => {
+        // attach middleware
+        serviceA.use('listen-middleware', (event) => {
           event.data += 1;
         });
 
-        // attach final listener
+        // attach handler
         serviceA.on('listen-middleware', (event) => {
           try {
             expect(event.data).to.equal(2);
@@ -64,8 +64,8 @@ describe('Integration', () => {
     it('should handle events in cascade order with multiple functions', async () => {
       return new Promise(async (resolve, reject) => {
 
-        // attach mulitple listeners
-        serviceA.on('listen-multi-middleware',
+        // attach mulitple middleware
+        serviceA.use('listen-multi-middleware',
           (event) => event.data += 1,
           (event) => event.data += 1
         );
@@ -94,7 +94,7 @@ describe('Integration', () => {
     it('should allow error handling middleware to trap exceptions', () => {
       return new Promise(async (resolve, reject) => {
 
-        // add error handling middleware
+        // add error middleware
         serviceA.use((err, event) => { // eslint-disable-line no-unused-vars
           try {
             event.end();
@@ -140,14 +140,14 @@ describe('Integration', () => {
         });
 
         // attach first emit middleware
-        serviceB.onEmit('emit-middleware', async (event) => {
+        serviceB.use('emit-middleware', { out: async (event) => {
           event.data = 'hello ' + event.data;
-        });
+        }});
 
         // attach second emit middlware
-        serviceB.onEmit('emit-middleware', async (event) => {
+        serviceB.use('emit-middleware', { out: async (event) => {
           event.data = event.data + '!';
-        });
+        }});
 
         // start the services
         await serviceA.start({ brokerPath: RABBITMQ });

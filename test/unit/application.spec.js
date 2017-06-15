@@ -2,6 +2,7 @@
 let sinon = require('sinon');
 let chai = require('chai');
 let expect = chai.expect;
+let Router = require('../../src/router');
 let Application = require('../../src/application');
 
 describe('Application', () => {
@@ -325,20 +326,143 @@ describe('Application', () => {
     });
   });
 
-  describe('.onEmit', () => {
-    describe('with single fn', () => {
-      it('should add listener to the router', () => {
-        app.onEmit('path', function func() { });
-        expect(app._outRouter.stack[0].path).to.equal('path');
+  describe('.use', () => {
+    describe('with path', () => {
+      describe('when no function', () => {
+        it('should throw exception when no function', () => {
+          expect(() => app.use('test')).to.throw(TypeError);
+        });
+      });
+      describe('when param object with \'in\' middleware', () => {
+        it('should add to inRouter when \'in\' is function', () => {
+          app.use('test', { in: function fn1() { } });
+          expect(app._inRouter.stack[0].path).to.equal('test');
+          expect(app._inRouter.stack[0].name).to.equal('fn1');
+        });
+        it('should add each to inRouter when \'in\' is array', () => {
+          app.use('test', { in: [ function fn1() { }, function fn2() { } ] });
+          expect(app._inRouter.stack[0].path).to.equal('test');
+          expect(app._inRouter.stack[0].name).to.equal('fn1');
+          expect(app._inRouter.stack[1].path).to.equal('test');
+          expect(app._inRouter.stack[1].name).to.equal('fn2');
+        });
+        it('should throw TypeError when \'in\' is array with non function', () => {
+          expect(() => app.use('test', { in: [ 1 ] })).to.throw(TypeError);
+        });
+        it('should throw TypeError when \'in\' is not a function or array', () => {
+          expect(() => app.use('test', { in: 1 })).to.throw(TypeError);
+        });
+      });
+      describe('when param object with out middleware', () => {
+        it('should add to outRouter when \'out\' is function', () => {
+          app.use('test', { out: function fn1() { } });
+          expect(app._outRouter.stack[0].path).to.equal('test');
+          expect(app._outRouter.stack[0].name).to.equal('fn1');
+        });
+        it('should add each to outRouter when \'out\' is array', () => {
+          app.use('test', { out: [ function fn1() { }, function fn2() { } ] });
+          expect(app._outRouter.stack[0].path).to.equal('test');
+          expect(app._outRouter.stack[0].name).to.equal('fn1');
+          expect(app._outRouter.stack[1].path).to.equal('test');
+          expect(app._outRouter.stack[1].name).to.equal('fn2');
+        });
+        it('should throw TypeError when \'in\' is array with non function', () => {
+          expect(() => app.use('test', { in: [ 1 ] })).to.throw(TypeError);
+        });
+        it('should throw TypeError when \'in\' is not a function or array', () => {
+          expect(() => app.use('test', { in: 1 })).to.throw(TypeError);
+        });
+      });
+      describe('when single function', () => {
+        it('should add to inRouter', () => {
+          app.use('test', function fn1() { });
+          expect(app._inRouter.stack[0].path).to.equal('test');
+          expect(app._inRouter.stack[0].name).to.equal('fn1');
+        });
+        it('should throw TypeError when not a function', () => {
+          expect(() => app.use('test', 1)).to.throw(TypeError);
+        });
+      });
+      describe('when multiple functions', () => {
+        it('should add each function to inRouter', () => {
+          app.use('test', function fn1() { }, function fn2() { });
+          expect(app._inRouter.stack[0].path).to.equal('test');
+          expect(app._inRouter.stack[0].name).to.equal('fn1');
+          expect(app._inRouter.stack[1].path).to.equal('test');
+          expect(app._inRouter.stack[1].name).to.equal('fn2');
+        });
+        it('should throw TypeError when not a function', () => {
+          expect(() => app.use('test', function fn1() { }, 1)).to.throw(TypeError);
+        });
       });
     });
-    describe('with multiple fns', () => {
-      it('should add listeners to the router', () => {
-        app.onEmit('path', function fn1() { }, function fn2() { });
-        expect(app._outRouter.stack[0].path).to.equal('path');
-        expect(app._outRouter.stack[0].name).to.equal('fn1');
-        expect(app._outRouter.stack[1].path).to.equal('path');
-        expect(app._outRouter.stack[1].name).to.equal('fn2');
+    describe('without path', () => {
+      describe('when no function', () => {
+        it('should throw exception when no function', () => {
+          expect(() => app.use()).to.throw(TypeError);
+        });
+      });
+      describe('when param object with \'in\' middleware', () => {
+        it('should add to inRouter when \'in\' is function', () => {
+          app.use({ in: function fn1() { } });
+          expect(app._inRouter.stack[0].path).to.equal('#');
+          expect(app._inRouter.stack[0].name).to.equal('fn1');
+        });
+        it('should add each to inRouter when \'in\' is array', () => {
+          app.use({ in: [ function fn1() { }, function fn2() { } ] });
+          expect(app._inRouter.stack[0].path).to.equal('#');
+          expect(app._inRouter.stack[0].name).to.equal('fn1');
+          expect(app._inRouter.stack[1].path).to.equal('#');
+          expect(app._inRouter.stack[1].name).to.equal('fn2');
+        });
+        it('should throw TypeError when \'in\' is array with non function', () => {
+          expect(() => app.use({ in: [ 1 ] })).to.throw(TypeError);
+        });
+        it('should throw TypeError when \'in\' is not a function or array', () => {
+          expect(() => app.use({ in: 1 })).to.throw(TypeError);
+        });
+      });
+      describe('when param object with out middleware', () => {
+        it('should add to outRouter when \'out\' is function', () => {
+          app.use({ out: function fn1() { } });
+          expect(app._outRouter.stack[0].path).to.equal('#');
+          expect(app._outRouter.stack[0].name).to.equal('fn1');
+        });
+        it('should add each to outRouter when \'out\' is array', () => {
+          app.use({ out: [ function fn1() { }, function fn2() { } ] });
+          expect(app._outRouter.stack[0].path).to.equal('#');
+          expect(app._outRouter.stack[0].name).to.equal('fn1');
+          expect(app._outRouter.stack[1].path).to.equal('#');
+          expect(app._outRouter.stack[1].name).to.equal('fn2');
+        });
+        it('should throw TypeError when \'in\' is array with non function', () => {
+          expect(() => app.use({ in: [ 1 ] })).to.throw(TypeError);
+        });
+        it('should throw TypeError when \'in\' is not a function or array', () => {
+          expect(() => app.use({ in: 1 })).to.throw(TypeError);
+        });
+      });
+      describe('when single function', () => {
+        it('should add to inRouter', () => {
+          app.use(function fn1() { });
+          expect(app._inRouter.stack[0].path).to.equal('#');
+          expect(app._inRouter.stack[0].name).to.equal('fn1');
+        });
+        it('should throw TypeError when not a function', () => {
+          expect(() => app.use('#', 1)).to.throw(TypeError);
+        });
+      });
+      describe('when multiple functions', () => {
+        it('should add each function to inRouter', () => {
+          app.use(function fn1() { }, function fn2() { });
+          expect(app._inRouter.stack[0].path).to.equal('#');
+          expect(app._inRouter.stack[0].name).to.equal('fn1');
+          expect(app._inRouter.stack[1].path).to.equal('#');
+          expect(app._inRouter.stack[1].name).to.equal('fn2');
+        });
+        it('should throw TypeError when not a function', () => {
+          expect(() => app.use(function fn1() { }, 1)).to.throw(TypeError);
+        });
       });
     });
   });
