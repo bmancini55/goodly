@@ -224,4 +224,15 @@ describe('util', () => {
     });
   });
 
+  describe('.generateId', () => {
+    it('it should generate id length 10', () => {
+      let actual = util.generateId();
+      expect(actual).to.match(/[A-Z]{10,}/i);
+    });
+    it('should generate id of specified length', () => {
+      let actual = util.generateId(5);
+      expect(actual).to.match(/[A-Z]{5,}/i);
+    });
+  });
+
 });

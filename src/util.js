@@ -1,7 +1,8 @@
 
 module.exports = {
   convertToBuffer,
-  convertFromBuffer
+  convertFromBuffer,
+  generateId,
 };
 
 function convertFromBuffer(contentType, buffer) {
@@ -76,4 +77,17 @@ function convertToBuffer(data) {
     contentType,
     buffer
   };
+}
+
+function generateId(length = 10) {
+  let chars = 'BCDFGHJKLMNPQRSTVWXYZ';
+  let max = chars.length - 1;
+  let output = '';
+
+  for(let i = 0; i < length; i ++) {
+    let index = Math.floor(Math.random() * (max));
+    output += chars[index];
+  }
+
+  return output;
 }
