@@ -8,80 +8,49 @@ let Application = require('../../src/application');
 
 describe('Goodly factory', () => {
 
-  describe('when no auto-start', () => {
-    it('should return unstarted service immediately', () => {
-      let svc = factory({ name: 'test' });
-      expect(svc._channel).to.be.undefined;
+  describe('with object params', () => {
+    it('should return service', () => {
+      let app = factory({ name: 'test' });
+      expect(app instanceof Application);
+    });
+    it('should assign the name', () => {
+      let app = factory({ name: 'test' });
+      expect(app.name).to.equal('test');
+    });
+    it('should not start service', () => {
+      let app = factory({ name: 'test' });
+      expect(app._channel).to.be.undefined;
     });
   });
 
-  describe('when auto-start', () => {
-    let stubStart, stubStop;
-    beforeEach(() => {
-      stubStart = sinon.stub(Application.prototype, 'start');
-      stubStop  = sinon.stub(Application.prototype, 'stop');
+  describe('with string', () => {
+    it('should return service', () => {
+      let app = factory('test');
+      expect(app instanceof Application);
     });
-
-    afterEach(() => {
-      stubStart.restore();
-      stubStop.restore();
+    it('should assign the name', () => {
+      let app = factory('test');
+      expect(app.name).to.equal('test');
     });
-
-    it('should execute the callback prior to starting', (done) => {
-      let callback = sinon.stub();
-      factory({ name: 'test', brokerPath: 'test'}, callback)
-        .then(() => expect(callback.called).to.be.true)
-        .then(() => done())
-        .catch(done);
+    it('should not start service', () => {
+      let app = factory('test');
+      expect(app._channel).to.be.undefined;
     });
+  });
 
-    it('should start the service', (done) => {
-      factory({ name: 'test', brokerPath: 'broker' })
-        .then(() => expect(stubStart.called).to.be.true)
-        .then(() => expect(stubStart.args[0][0].brokerPath).to.equal('broker'))
-        .then(() => done())
-        .catch(done);
+  describe('with no param', () => {
+    it('should return service', () => {
+      let app = factory();
+      expect(app instanceof Application);
     });
-
-    it('should resolve with the service', (done) => {
-      factory({ name: 'test', brokerPath: 'broker' })
-        .then((svc) => expect(svc).to.be.instanceOf(Application))
-        .then(() => done())
-        .catch(done);
+    it('should not assign name', () => {
+      let app = factory();
+      expect(app.name).to.not.be.undefined;
     });
-
-    describe('when there is an error', () => {
-      it('should stop the service', (done) => {
-        stubStart.throws('Boom');
-        factory({ name: 'test', brokerPath: 'broker' })
-          .catch(() => {
-            expect(stubStop.called).to.be.true;
-            done();
-          })
-          .catch(done);
-      });
-      it('should rethrow the exception', (done) => {
-        stubStart.throws('Boom');
-        stubStop.returns(Promise.resolve());
-        factory({ name: 'test', brokerPath: 'broker' })
-          .catch((ex) => {
-            expect(ex.name).to.equal('Boom');
-            done();
-          })
-          .catch(done);
-      });
-      it('should rethrow the exception if stop fails', (done) => {
-        stubStart.throws('Boom');
-        stubStop.returns(Promise.reject('Double boom'));
-        factory({ name: 'test', brokerPath: 'broker' })
-          .catch((ex) => {
-            expect(ex.name).to.equal('Boom');
-            done();
-          })
-          .catch(done);
-      });
+    it('should not start service', () => {
+      let app = factory();
+      expect(app._channel).to.be.undefined;
     });
-
   });
 
 });

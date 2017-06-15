@@ -32,7 +32,7 @@ describe('Integration', () => {
 
   describe('when listening', () => {
 
-    it('should handle events in cascade order', async () => {
+    it('should handle events in cascade order', () => {
       return new Promise(async (resolve, reject) => {
 
         // attach middleware
@@ -61,7 +61,7 @@ describe('Integration', () => {
       });
     });
 
-    it('should handle events in cascade order with multiple functions', async () => {
+    it('should handle events in cascade order with multiple functions', () => {
       return new Promise(async (resolve, reject) => {
 
         // attach mulitple middleware
