@@ -395,6 +395,12 @@ describe('Application', () => {
           expect(() => app.use('test', function fn1() { }, 1)).to.throw(TypeError);
         });
       });
+      describe('when sub-application', () => {
+        it('should throw execption', () => {
+          let sub = new Application({ name: 'sub' });
+          expect(() => app.use('test', sub)).to.throw(TypeError);
+        });
+      });
     });
     describe('without path', () => {
       describe('when no function', () => {
@@ -462,6 +468,41 @@ describe('Application', () => {
         });
         it('should throw TypeError when not a function', () => {
           expect(() => app.use(function fn1() { }, 1)).to.throw(TypeError);
+        });
+      });
+      describe('when application', () => {
+        let sub;
+        beforeEach(() => {
+          sub = new Application({ name: 'sub' });
+        });
+        it('should attach listener to router', () => {
+          sub.on('test', function fn() { });
+          app.use(sub);
+          expect(app._inRouter.stack[0].path).to.equal('test');
+          expect(app._inRouter.stack[0].name).to.equal('fn');
+        });
+        it('should attach listenered to bindings', () => {
+          sub.on('test', function fn() { });
+          app.use(sub);
+          expect(app._deferredBindings[0]).to.equal('test');
+        });
+        it('should attach include in middleware', () => {
+          sub.use(function fn1() { });
+          sub.use('test', function fn2() { });
+          app.use(sub);
+          expect(app._inRouter.stack[0].path).to.equal('#');
+          expect(app._inRouter.stack[0].name).to.equal('fn1');
+          expect(app._inRouter.stack[1].path).to.equal('test');
+          expect(app._inRouter.stack[1].name).to.equal('fn2');
+        });
+        it('should attach include out middleware', () => {
+          sub.use({ out: function fn1() { } });
+          sub.use('test', { out: function fn2() { } });
+          app.use(sub);
+          expect(app._outRouter.stack[0].path).to.equal('#');
+          expect(app._outRouter.stack[0].name).to.equal('fn1');
+          expect(app._outRouter.stack[1].path).to.equal('test');
+          expect(app._outRouter.stack[1].name).to.equal('fn2');
         });
       });
     });

@@ -223,8 +223,9 @@ class Application {
    */
   use() {
 
-    let inRouter = this._inRouter;
-    let outRouter = this._outRouter;
+    let _deferredBindings = this._deferredBindings;
+    let _inRouter = this._inRouter;
+    let _outRouter = this._outRouter;
     let path = '#';
     let fns = Array.prototype.slice.call(arguments);
 
@@ -257,12 +258,26 @@ class Application {
         if (fn && (fn.in || fn.out)) {
 
           if(fn.in) {
-            addFns(fn.in, inRouter);
+            addFns(fn.in, _inRouter);
           }
 
           if(fn.out) {
-            addFns(fn.out, outRouter);
+            addFns(fn.out, _outRouter);
           }
+        }
+
+        // handle sub-app
+        else if (fn instanceof Application) {
+
+          if(path !== '#') {
+            throw new TypeError('path cannot be specified for sub-app');
+          }
+
+          fn.parent = this;
+          fn.path   = path;
+          _deferredBindings.push.apply(_deferredBindings, fn._deferredBindings);
+          _inRouter.stack.push.apply(_inRouter.stack, fn._inRouter.stack);
+          _outRouter.stack.push.apply(_outRouter.stack, fn._outRouter.stack);
         }
 
         // handle function
@@ -277,7 +292,7 @@ class Application {
     }
 
     // add them
-    addFns(fns, inRouter);
+    addFns(fns, _inRouter);
   }
 
   /**
