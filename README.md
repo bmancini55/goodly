@@ -3,29 +3,29 @@
 [![Build Status][travis-image]][travis-url]
 [![Coverage Status][coveralls-image]][coveralls-url]
 
-Goodly is an unopininated microservice communication framework. It manages the low-level queing so you can focus on the important stuff: handling events.
+Goodly is an unopininated microservice framework. It manages the low-level queing so you can focus building services to handle events.
 
 Goodly has several design goals:
 
-1. Create a simple programming interface for event-based microservices.
-2. Support scale-out of individual services -> add more instances of the service and work will automatically be distributed between the instances.
-3. Support addition of new services -> add as many services as you need.
-4. Supports large-event transmission between services -> send data through the broker, http, tcp, udp, protocol buffers, etc.
+1. A simple programming interface for event-based microservices.
+2. Easily scale-out services to distribute load.
+3. Easily add new services and listen to any event.
 
-Goodly doesn't tell you the best way to structure you app, it gives you a set of tools and lets you build on-top of RabbitMQ.  Goodly manages the AMQP exchange creation, queue creation, and messaging routing creation. It does all this to provide a simple interface for building your application that will automatically scale.
+## Getting Started
 
-## Made for coding
+Using Node.js 7.6+, you can easily create a service.
 
-How easy it is to use? Create a service in a few lines of code...
+```
+npm install goodly
+```
 
 ```javascript
-import goodly from 'goodly';
+let goodly = require('goodly');
 
+// create the service
 const service = goodly({ name: 'documents' });
 
-// start the service
-service.start({ brokerPath: 'ampq://192.168.99.100' });
-
+// attach event listeners
 // listen for an event and do something
 service.on('document.uploaded', async ({ data, emit }) => {
   // do something with the data
@@ -33,10 +33,10 @@ service.on('document.uploaded', async ({ data, emit }) => {
   // emit another event
   emit('document.available', document);
 });
+
+// start the service
+service.start({ brokerPath: 'ampq://192.168.99.100' });
 ```
-
-With the above code, you could start a single instance or 1000 instances. The work will be distributed between your instances automatically.
-
 
 ## API
 
@@ -44,7 +44,7 @@ With the above code, you could start a single instance or 1000 instances. The wo
 
 * __Promise start({ brokerPath, concurrent)__
   
-  Starts the service and if necessary creates all exchange and queues owned by the service.  Once start is complete, the service will immeidately begin pulling work from the service queue.
+  Starts the service and creates all exchange and queues owned by the service. Handlers must be attached prior to starting the service. Once start is complete, the service will immeidately begin pulling work from the service queue.
   
   Parameters:
   * __string brokerPath__ - host of RabbitMQ
@@ -56,7 +56,7 @@ With the above code, you could start a single instance or 1000 instances. The wo
 
 * __Promise emit(path, data, options)__
 
-  Emits a message with the specified path and data. Emit does not expect a response and is equivalent to pub/sub actions.
+  Emits a message with the specified path and data. Emit does not expect a response and is equivalent to a publish actions.  The service needs to be started prior to emitting a request.
   
   Paramters:
   * __string path__ - name of the event to send
@@ -64,23 +64,43 @@ With the above code, you could start a single instance or 1000 instances. The wo
   
 * __Promise request(path, data)__
 
-  Makes a request with the specified path and data. Request will block until a response is received.
+  Makes a request with the specified path and data. Request will block until a response is received.  The service must be started prior to emitting a request.
   
   Paramters:
   * __string path__ - name of the event to send
   * __any data__ - the data that will be send that could be a buffer, string, int, float, bool, array, object, or error
   
-* __Promise on(path, fn1, fn2, ...)__
+* __void on(path, fn1, fn2, ...)__
  
    Adds a handler to the service for supplied path. The supplied functions will be executed in order of attachment.
    
    Parameters:
    * __string path__ - name of the event to listen for
-   * __fn handler__ - a handler for the event
+   * __fn handler__ - a handler for the event  
+
+* __void use(path, args)__
+  
+  Adds middleware function for modifying in-bound or out-bound events.  The path is optional, and if not supplied will attach the middleware to all event.
+  
+  Parameters:
+  * __string path__ - optional path to attach middleware to
+  * __object|function args__ - function for inbound middleware or an object with properties `in` and `out` for attaching a function to in-bound and out-bound events.
    
  ### Handler
  
-Handlers are called with an `Event` object. The `Event` object contains several methods and pieces of data:
+Handlers are called with an `Event` object as the first argument and `next` function as the second argument.  Using `next` allows middleware to pass control to the next layer of middleware and await it's completion.
+
+For example:
+
+```
+service.use(async function (event, next) {
+  console.log('recieved an event');
+  await next();
+  console.log('processed event successfully';
+}
+```
+
+The `Event` object contains several methods and pieces of data:
 
 Properties:
 
@@ -91,7 +111,7 @@ Properties:
 Methods:
 
 * __emit__ - calls the emit method on the service but uses the supplied correlationId for the incoming event
-* __reply__ - replys to a message that is a Request/Response message
+* __reply__ - replys to a message that is a Request/Response message 
 
 
 
