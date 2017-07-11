@@ -3,12 +3,12 @@
 [![Build Status][travis-image]][travis-url]
 [![Coverage Status][coveralls-image]][coveralls-url]
 
-Goodly is an unopininated microservice framework. It manages the low-level queing so you can focus building services to handle events.
+Goodly is a simple microservice framework. It manages the low-level queing so you can focus on handling events.
 
 Goodly has several design goals:
 
-1. A simple programming interface for event-based microservices.
-2. Easily scale-out services to distribute load.
+1. A simple programming interface for event-collaboration.
+2. Built-in support for service scale-out to distribute load.
 3. Easily add new services and listen to any event.
 
 ## Getting Started
@@ -20,23 +20,34 @@ npm install goodly
 ```
 
 ```javascript
-let goodly = require('goodly');
+const goodly  = require('goodly');
+const service = goodly({ name: 'ping' });
 
-// create the service
-const service = goodly({ name: 'documents' });
-
-// attach event listeners
-// listen for an event and do something
-service.on('document.uploaded', async ({ data, emit }) => {
-  // do something with the data
-  let document = await saveDocumentAsync(data);
-  // emit another event
-  emit('document.available', document);
+service.on('pong', async ({ data, emit }) => {  
+  console.log(`recieved ${data.message}`);
+  await emit('pong', { message: 'pong' });  
 });
 
-// start the service
-service.start({ brokerPath: 'ampq://192.168.99.100' });
+service.start({ brokerPath: 'ampq://127.0.0.1' });
 ```
+
+## Overview
+
+Goodly is simple but powerful. Here are some of the features.
+
+### PubSub / Broadcast
+
+### Request Response
+
+### Middleware
+
+#### Inbound
+
+#### Outbound
+
+### Async/Await
+
+Goodly also uses [`async/await`](https://developers.google.com/web/fundamentals/getting-started/primers/async-functions) instead of callbacks to make your code easier to reason about.
 
 ## API
 
@@ -113,6 +124,13 @@ Methods:
 * __emit__ - calls the emit method on the service but uses the supplied correlationId for the incoming event
 * __reply__ - replys to a message that is a Request/Response message 
 
+## AMQP and the Goodly Spec
+
+### Exchanges and Queues
+
+### Message Serialization
+
+### Future Porting
 
 
 [travis-image]: https://travis-ci.org/bmancini55/goodly.svg?branch=master
