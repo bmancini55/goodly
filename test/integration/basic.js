@@ -14,7 +14,6 @@ describe('Integration', () => {
   let serviceB;
 
   beforeEach(async () => {
-    sinon.stub(console, 'error');
     serviceA = goodly({ name: 'serviceA' });
     serviceB = goodly({ name: 'serviceB' });
   });
@@ -24,7 +23,6 @@ describe('Integration', () => {
       setTimeout(() => {
         serviceA.stop();
         serviceB.stop();
-        console.error.restore();
         resolve();
       }, 50);
     });
@@ -36,12 +34,13 @@ describe('Integration', () => {
       return new Promise(async (resolve, reject) => {
 
         // attach middleware
-        serviceA.use('listen-middleware', (event) => {
+        serviceA.use('listen-middleware', async (event, next) => {
           event.data += 1;
+          await next();
         });
 
         // attach handler
-        serviceA.on('listen-middleware', (event) => {
+        serviceA.on('listen-middleware', async (event) => {
           try {
             expect(event.data).to.equal(2);
             resolve();
@@ -66,8 +65,8 @@ describe('Integration', () => {
 
         // attach mulitple middleware
         serviceA.use('listen-multi-middleware',
-          (event) => event.data += 1,
-          (event) => event.data += 1
+          async (event, next) => { event.data += 1; await next(); },
+          async (event, next) => { event.data += 1; await next(); }
         );
 
         // attach final listener
@@ -95,9 +94,8 @@ describe('Integration', () => {
       return new Promise(async (resolve, reject) => {
 
         // add error middleware
-        serviceA.use((err, event) => { // eslint-disable-line no-unused-vars
+        serviceA.use((err, event, next) => { // eslint-disable-line no-unused-vars
           try {
-            event.end();
             expect(err.message).to.equal('boom');
             resolve();
           }
@@ -140,13 +138,15 @@ describe('Integration', () => {
         });
 
         // attach first emit middleware
-        serviceB.use('emit-middleware', { out: async (event) => {
+        serviceB.use('emit-middleware', { out: async (event, next) => {
           event.data = 'hello ' + event.data;
+          await next();
         }});
 
         // attach second emit middlware
-        serviceB.use('emit-middleware', { out: async (event) => {
+        serviceB.use('emit-middleware', { out: async (event, next) => {
           event.data = event.data + '!';
+          await next();
         }});
 
         // start the services
@@ -183,7 +183,6 @@ describe('Integration', () => {
     });
 
     it('should handle errors in response', async () => {
-      sinon.stub(console, 'log');
 
       // request handler throws exception
       serviceA.on('reply-error', () => {
@@ -201,9 +200,6 @@ describe('Integration', () => {
       }
       catch(ex) {
         expect(ex.message).to.equal('boom');
-      }
-      finally {
-        console.log.restore();
       }
 
     });

@@ -15,7 +15,6 @@ class Event {
     // and still retaining the binding
     this.emit  = this.emit.bind(this);
     this.reply = this.reply.bind(this);
-    this.end   = this.end.bind(this);
   }
 
   /**
@@ -43,14 +42,6 @@ class Event {
       throw new Error('Response has already been set');
     }
     this.response = data;
-  }
-
-  /**
-   * Terminates the event
-   * @return {[type]} [description]
-   */
-  end() {
-    this.done = true;
   }
 
 }

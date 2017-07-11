@@ -58,8 +58,9 @@ describe('Router', () => {
     it('should process each matching layer', (done) => {
       let calls = [ false, false, false, false, false ];
       let makeHandler = (index) => {
-        return async () => {
+        return async (event, next) => {
           calls[index] = true;
+          await next();
         };
       };
       router.add('path', makeHandler(0));
@@ -77,6 +78,23 @@ describe('Router', () => {
         })
         .catch(done);
     });
+    it('should await for next middleware', (done) => {
+      let calls = [];
+      router.add('path', async (event, next) => {
+        calls.push(1);
+        await next();
+        calls.push(3);
+      });
+      router.add('path', async () => {
+        calls.push(2);
+      });
+      router.handle('path', {})
+        .then(() => {
+          expect(calls).to.deep.equal([1,2,3]);
+          done();
+        })
+        .catch(done);
+    });
     it('should return the event.response', (done) => {
       router.add('responder', (event) => { event.response = 'hello'; });
       router
@@ -87,41 +105,27 @@ describe('Router', () => {
         })
         .catch(done);
     });
-    describe('when event is flagged as done', () => {
+    describe('when next is not called', () => {
       it('should not execute additional layers', (done) => {
         let count = 0;
-        router.add('responder', () => count += 1 );
-        router.add('responder', (event) => { event.end(); });
-        router.add('responder', () => count += 1 );
+        router.add('responder', async (event, next) => { count += 1; await next(); });
+        router.add('responder', async (event, next) => { count += 1; }); // eslint-disable-line no-unused-vars
+        router.add('responder', async (event, next) => { count += 1; }); // eslint-disable-line no-unused-vars
         router
           .handle('responder', event)
           .then(() => {
-            expect(count).to.equal(1);
+            expect(count).to.equal(2);
             done();
           })
           .catch(done);
       });
     });
-    describe('when event is not flagged as done', () => {
-      it('should execute matching layers', (done) => {
-        let count = 0;
-          router.add('responder', () => count += 1 );
-          router.add('responder', () => count += 1 );
-          router
-            .handle('responder', event)
-            .then(() => {
-              expect(count).to.equal(2);
-              done();
-            })
-            .catch(done);
-      });
-    });
-    describe('when error ocurrs', () => {
+    describe('when error occurs', () => {
       it('should call error handlers', (done) => {
         let called1, called2;
         router.add('responder', () => { throw new Error('boom'); });
-        router.add('#', (err, event) => called1 = true); // eslint-disable-line no-unused-vars
-        router.add('#', (err, event) => called2 = true); // eslint-disable-line no-unused-vars
+        router.add('#', async (err, event, next) => { called1 = true; await next(); }); // eslint-disable-line no-unused-vars
+        router.add('#', async (err, event, next) => { called2 = true; }); // eslint-disable-line no-unused-vars
         router
           .handle('responder', event)
           .then(() => {
@@ -133,7 +137,7 @@ describe('Router', () => {
       });
       it('should return error', (done) => {
         router.add('responder', () => { throw new Error('boom'); });
-        router.add('#', (err, event) => {}); // eslint-disable-line no-unused-vars
+        router.add('#', (err, event, next) => {}); // eslint-disable-line no-unused-vars
         router
           .handle('responder', event)
           .then((err) => {
@@ -151,8 +155,6 @@ describe('Router', () => {
             done();
           })
           .catch(done);
-
-
       });
     });
   });

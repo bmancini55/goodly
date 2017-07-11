@@ -128,8 +128,8 @@ describe('Layer', () => {
         expect(layer.name).to.equal('<anonymous>');
       });
     });
-    describe('when function accespts 1 argument', () => {
-      it('should flag the layer as an errorHandler', () => {
+    describe('when function accepts 1 argument', () => {
+      it('should not flag the layer as an errorHandler', () => {
         // eslint-disable-next-line no-unused-vars
         let layer = new Layer('path', (event) => { });
         expect(layer.handlesError).to.be.false;
@@ -138,7 +138,14 @@ describe('Layer', () => {
     describe('when function accepts 2 arguments', () => {
       it('should not flag the layer as an errorHandler', () => {
         // eslint-disable-next-line no-unused-vars
-        let layer = new Layer('path', (err, event) => { });
+        let layer = new Layer('path', (event, next) => { });
+        expect(layer.handlesError).to.be.false;
+      });
+    });
+    describe('when function accepts 3 arguments', () => {
+      it('should flag the layer as an errorHandler', () => {
+        // eslint-disable-next-line no-unused-vars
+        let layer = new Layer('path', (err, event, next) => { });
         expect(layer.handlesError).to.be.true;
       });
     });
@@ -182,14 +189,14 @@ describe('Layer', () => {
       });
       it('should return true when error handler', () => {
         // eslint-disable-next-line no-unused-vars
-        let layer = new Layer('path', (err, event) => {});
+        let layer = new Layer('path', (err, event, next) => {});
         expect(layer.match('path', new Error())).to.be.true;
       });
     });
     describe('when not error', () => {
       it('should ignore errorHandlers', () => {
         // eslint-disable-next-line no-unused-vars
-        let layer = new Layer('path', (err, event) => {});
+        let layer = new Layer('path', (err, event, next) => {});
         expect(layer.match('path')).to.be.false;
       });
     });

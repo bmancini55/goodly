@@ -112,6 +112,7 @@ class Application {
     // attach deferred listeners
     let binding;
     while((binding = this._deferredBindings.shift())) {
+      debug(`binding to ${binding}`);
       await this._bindQueue.call(this, binding);
     }
 
@@ -444,9 +445,8 @@ class Application {
       debug(this.name + ' applied default out middleware');
     });
     // eslint-disable-next-line no-unused-vars
-    this._inRouter.add((err, event) => {
+    this._inRouter.add((err, event, next) => {
       console.error(err.stack);
-      event.end();
     });
   }
 }

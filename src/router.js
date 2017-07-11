@@ -31,25 +31,42 @@ class Router {
   }
 
   async _handle(path, event) {
-    for(let layer of this.stack) {
-      if(layer.match(path)) {
-        await layer.handle(event);
-        if(event.done) {
-          break;
+    let stack = this.stack;
+    let idx   = 0;
+
+    async function next() {
+      let match;
+      while(!match && idx < stack.length) {
+        let layer = stack[idx++];
+        match = layer.match(path);
+        if(match) {
+          await layer.handle(event, next);
         }
       }
     }
+
+    await next();
     return event.response;
   }
 
   async _handleError(err, path, event) {
+    let stack   = this.stack;
+    let idx     = 0;
     let handled = false;
-    for(let layer of this.stack) {
-      if(layer.match(path, err)) {
-        await layer.handleError(err, event);
-        handled = true;
+
+    async function next() {
+      let match;
+      while(!match && idx < stack.length) {
+        let layer = stack[idx++];
+        match = layer.match(path, err);
+        if(match) {
+          await layer.handleError(err, event, next);
+          handled = true;
+        }
       }
     }
+
+    await next();
 
     if(!handled) {
       throw err;

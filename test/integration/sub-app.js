@@ -39,7 +39,7 @@ describe('Integration', () => {
         let sub = goodly();
 
         // create in middleware in sub
-        sub.use((event) => event.data += ' world');
+        sub.use(async (event, next) => { event.data += ' world'; await next(); });
 
         // attach sub-service to primary service
         serviceA.use(sub);
@@ -72,7 +72,7 @@ describe('Integration', () => {
         let sub = goodly();
 
         // create out middleware in sub
-        sub.use({ out: (event) => event.data += ' world' });
+        sub.use({ out: async (event, next) => { event.data += ' world'; await next(); }});
 
         // attach sub-service to primary service
         serviceB.use(sub);

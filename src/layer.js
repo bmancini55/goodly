@@ -8,7 +8,7 @@ class Layer {
     this.path         = path;
     this.fn           = fn;
     this.name         = fn.name || '<anonymous>';
-    this.handlesError = fn.length === 2;
+    this.handlesError = fn.length === 3;
 
     this.regexp = this._createRegex(path);
 
@@ -41,6 +41,7 @@ class Layer {
   }
 
   match(path, err) {
+
     if (path == null) {
       return false;
     }
@@ -64,12 +65,12 @@ class Layer {
     return true;
   }
 
-  async handle(event) {
-    await this.fn(event);
+  async handle(event, next) {
+    await this.fn(event, next);
   }
 
-  async handleError(err, event) {
-    await this.fn(err, event);
+  async handleError(err, event, next) {
+    await this.fn(err, event, next);
   }
 }
 
